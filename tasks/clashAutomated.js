@@ -392,6 +392,8 @@ class ClashAutomated {
                         VALUES (?, 1, NOW(), NOW())
                     `;
                     await this.mysqlService.execute(insertPlayerQuery, [newMember.tag]);
+
+                    this.auditLogger.addPlayerAuditLog(newMember.tag, `Player joined the clan ${newClan.name} (${newClan.tag})`, 'playerJoinedClan', newMember);
                     logger.info(`New player added to sync: ${newMember.tag}`);
                 }
     

@@ -3,7 +3,7 @@ const logger = require("./logger");
 class AuditLogger {
     constructor(mysqlService) {
         this.mysqlService = mysqlService;
-        this.batchSize = 10; // Max number of logs per batch
+        this.batchSize = 1000; // Max number of logs per batch
         this.clanLogs = [];
         this.playerLogs = [];
         this.flushTimeout = null;
