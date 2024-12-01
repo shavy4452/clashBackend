@@ -126,6 +126,9 @@ class ClashController {
                 logger.error('Service is currently down for maintenance');
                 return res.status(200).json({ success: false, message: 'API is currently in maintenance, please come back later' });
             }
+            if(error.reason === 'notFound') {
+                return res.status(200).json({ success: false, message: 'Clan not found' });
+            }
             logger.error('Failed to get clash data:', error);
             console.log('Failed to get clash data:', error);
             return res.status(500).json({ success: false, message: 'Failed to get clash data' });
@@ -167,6 +170,9 @@ class ClashController {
                 logger.error('Service is currently down for maintenance');
                 return res.status(200).json({ success: false, message: 'API is currently in maintenance, please come back later' });
             }
+            if (error.reason === 'notFound') {
+                return res.status(200).json({ success: false, message: 'Clan war log is private.' });
+            }
             logger.error('Failed to get clash members:', error);
             return res.status(500).json({ success: false, message: 'Failed to get clash members' });
         }
@@ -202,6 +208,9 @@ class ClashController {
             if (error.status === 503 && error.reason === 'inMaintenance') {
                 logger.error('Service is currently down for maintenance');
                 return res.status(200).json({ success: false, message: 'API is currently in maintenance, please come back later' });
+            }
+            if(error.reason === 'notFound' && error.status === 404) {
+                return res.status(200).json({ success: false, message: 'Player not found' });
             }
             logger.error('Failed to get clash members:', error);
             return res.status(500).json({ success: false, message: 'Failed to get Player Info' });
