@@ -41,6 +41,9 @@ class Server {
 
   
   initRoutes() {
+    this.app.get('/', (req, res) => {
+      res.redirect('/api-docs');
+    });
     const apiRoutes = new ApiRoutes();
     this.app.use('/api', apiRoutes.getRouter());
 
