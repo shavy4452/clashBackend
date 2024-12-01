@@ -2,3 +2,5 @@
 /package-lock.json
 /database/*
 /logs/*
+/cocwebsocket.js
+/test.js
