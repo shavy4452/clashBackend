@@ -7,7 +7,7 @@ APP_NAME="clashBackend"       # Application name
 REPO_URL="git@github.com:shavy4452/clashBackend.git" # Replace with your repository URL
 APP_DIR="/data/$APP_NAME"     # Application directory
 BRANCH="main"                    # Branch to deploy
-CONFIG_DIR="/data/config/"      # Configuration directory
+CONFIG_DIR="/data/$APP_NAME/config" # Configuration directory
 CONFIG_FILE="config.js"      # Configuration file
 
 echo "Starting deployment of $APP_NAME..."
@@ -71,6 +71,7 @@ const config = {
 
 module.exports = config;
 EOL
+    cd $APP_DIR
     echo "$CONFIG_FILE created successfully."
 }
 create_config
