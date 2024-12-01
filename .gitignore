@@ -4,3 +4,4 @@
 /logs/*
 /cocwebsocket.js
 /test.js
+/config/config.js
