@@ -7,8 +7,9 @@ const limiter = rateLimit({
     success: false,
     message: 'Too many requests, please try again later.'
   },
-  standardHeaders: true, // Enable `RateLimit-*` headers
-  legacyHeaders: false, // Disable `X-RateLimit-*` headers
+  keyGenerator: (req) => {
+    return req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+  },
 });
 
 module.exports = limiter;
