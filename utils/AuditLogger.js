@@ -60,11 +60,24 @@ class AuditLogger {
                         log.clanTag = log.clanTag.substring(1);
                     }
                     const clan_id_query = `SELECT id FROM clan WHERE clanTag = ?`;
-                    const clanIdResult = await this.mysqlService.execute(clan_id_query, [log.clanTag]);
+                    var clanIdResult = await this.mysqlService.execute(clan_id_query, [log.clanTag]);
     
                     if (clanIdResult.length === 0) {
                         logger.warn(`Clan with tag ${log.clanTag} does not exist`);
-                        return null; // Return null if the clan does not exist, handle accordingly.
+                        const clan_id_create_query = `INSERT INTO clan(clanTag, isToBeSynced, firstseen, lastsynced) VALUES (?, ?, ?, ?)`;
+                        const clan_id_create_result = await this.mysqlService.execute(clan_id_create_query, [log.clanTag, 0, new Date(), new Date()]);
+                        if (clan_id_create_result.affectedRows === 1) {
+                            logger.info(`Clan with tag ${log.clanTag} created successfully`);
+                            const clan_id_create_query = `SELECT id FROM clan WHERE clanTag = ?`;
+                            clanIdResult = await this.mysqlService.execute(clan_id_create_query, [log.clanTag]);
+                            if (clanIdResult.length === 0) {
+                                logger.warn(`Clan with tag ${log.clanTag} does not exist`);
+                                return null; // Return null if the clan does not exist, handle accordingly.
+                            }
+                        } else {
+                            logger.error(`Clan with tag ${log.clanTag} could not be created`);
+                            return null;
+                        }
                     }
     
                     const clan_id = clanIdResult[0].id; // Assuming 'id' is the field for clan id
@@ -86,11 +99,24 @@ class AuditLogger {
                     }
     
                     const player_id_query = `SELECT id FROM player WHERE playerTag = ?`;
-                    const playerIdResult = await this.mysqlService.execute(player_id_query, [log.playerTag]);
+                    var playerIdResult = await this.mysqlService.execute(player_id_query, [log.playerTag]);
     
                     if (playerIdResult.length === 0) {
                         logger.warn(`Player with tag ${log.playerTag} does not exist`);
-                        return null; // Return null if the player does not exist, handle accordingly.
+                        const player_id_create_query = `INSERT INTO player(playerTag, isToBeTracked, firstseen, lastsynced) VALUES (?, ?, ?, ?)`;
+                        const player_id_create_result = await this.mysqlService.execute(player_id_create_query, [log.playerTag, 0, new Date(), new Date()]);
+                        if (player_id_create_result.affectedRows === 1) {
+                            logger.info(`Player with tag ${log.playerTag} created successfully`);
+                            const player_id_create_query = `SELECT id FROM player WHERE playerTag = ?`;
+                            playerIdResult = await this.mysqlService.execute(player_id_create_query, [log.playerTag]);
+                            if (playerIdResult.length === 0) {
+                                logger.warn(`Player with tag ${log.playerTag} does not exist`);
+                                return null; // Return null if the player does not exist, handle accordingly.
+                            }
+                        } else {
+                            logger.error(`Player with tag ${log.playerTag} could not be created`);
+                            return null;
+                        }
                     }
     
                     const player_id = playerIdResult[0].id; // Assuming 'id' is the field for player id
