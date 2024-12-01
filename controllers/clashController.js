@@ -26,7 +26,7 @@ class ClashController {
             if (result.length === 0) {
                 return res.status(200).json({ success: false, message: 'Clan not found' });
             } else {
-                sqlQuery = `SELECT * FROM ClanAuditLogs WHERE clan_id=${parseInt(result[0].id)} AND event_type IN ('clanDescriptionChange', 'clanLevelChange', 'clanLocationChange', 'clanWarLogChange', 'clanNameChange', 'ADD') ORDER BY added_on DESC LIMIT ${limit}`;
+                sqlQuery = `SELECT * FROM clanauditlogs WHERE clan_id=${parseInt(result[0].id)} AND event_type IN ('clanDescriptionChange', 'clanLevelChange', 'clanLocationChange', 'clanWarLogChange', 'clanNameChange', 'ADD') ORDER BY added_on DESC LIMIT ${limit}`;
                 var dresult = await db.execute(sqlQuery);
     
                 if (dresult.length === 0) {
@@ -63,7 +63,7 @@ class ClashController {
             if (result.length === 0) {
                 return res.status(200).json({ success: false, message: 'Clan not found' });
             } else {
-                sqlQuery = `SELECT * FROM ClanAuditLogs WHERE clan_id=${parseInt(result[0].id)} AND event_type IN ('clanMemberChange','clanMemberRoleChange') ORDER BY added_on DESC LIMIT ${limit}`;
+                sqlQuery = `SELECT * FROM clanauditlogs WHERE clan_id=${parseInt(result[0].id)} AND event_type IN ('clanMemberChange','clanMemberRoleChange') ORDER BY added_on DESC LIMIT ${limit}`;
                 var dresult = await db.execute(sqlQuery);
     
                 if (dresult.length === 0) {
