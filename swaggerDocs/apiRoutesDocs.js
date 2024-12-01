@@ -1,7 +1,7 @@
 /**
  * @swagger
  * /health:
- *   get:
+ *   post:
  *     tags:
  *       - Health
  *     summary: Check API health
@@ -13,7 +13,7 @@
 /**
  * @swagger
  * /getClanInfo/{tag}:
- *   get:
+ *   post:
  *     tags:
  *       - Clan Endpoints
  *     summary: Get information about a clan
@@ -34,7 +34,7 @@
 /**
  * @swagger
  * /getClanMembers/{tag}:
- *   get:
+ *   post:
  *     tags:
  *       - Clan Endpoints
  *     summary: Get members of a clan
@@ -55,7 +55,7 @@
 /**
  * @swagger
  * /getCapitalRaidSeasons/{tag}:
- *   get:
+ *   post:
  *     tags:
  *       - Clan Endpoints
  *     summary: Get capital raid seasons for a clan
@@ -76,7 +76,7 @@
 /**
  * @swagger
  * /getClanMembersHero/{tag}:
- *   get:
+ *   post:
  *     tags:
  *       - Clan Endpoints
  *     summary: Get hero data for clan members
@@ -97,7 +97,7 @@
 /**
  * @swagger
  * /getPlayersInfo/{tag}:
- *   get:
+ *   post:
  *     tags:
  *       - Player Endpoints
  *     summary: Get player information
@@ -118,7 +118,7 @@
 /**
  * @swagger
  * /getCurrentWar/{tag}:
- *   get:
+ *   post:
  *     tags:
  *       - War Endpoints
  *     summary: Get the current war details
@@ -139,7 +139,7 @@
 /**
  * @swagger
  * /getWarLog/{tag}:
- *   get:
+ *   post:
  *     tags:
  *       - War Endpoints
  *     summary: Get the war log for a clan
@@ -160,7 +160,7 @@
 /**
  * @swagger
  * /getTHLevels/{tag}:
- *   get:
+ *   post:
  *     tags:
  *       - Clan Endpoints
  *     summary: Get Town Hall levels for clan members
@@ -181,7 +181,7 @@
 /**
  * @swagger
  * /getCWLresults/{tag}:
- *   get:
+ *   post:
  *     tags:
  *       - War Endpoints
  *     summary: Get Clan War League results
@@ -202,7 +202,7 @@
 /**
  * @swagger
  * /getWarWeight/{tag}:
- *   get:
+ *   post:
  *     tags:
  *       - War Endpoints
  *     summary: Get the war weight of a clan
@@ -223,7 +223,7 @@
 /**
  * @swagger
  * /db/getRecords/{phoneNumber}:
- *   get:
+ *   post:
  *     tags:
  *       - Database Operations
  *     summary: Get database records by phone number
@@ -244,7 +244,7 @@
 /**
  * @swagger
  * /db/addRecord/{PhoneNumber}/{Type}/{Tag}/{Action}:
- *   get:
+ *   post:
  *     tags:
  *       - Database Operations
  *     summary: Add a database record
@@ -282,7 +282,7 @@
 /**
  * @swagger
  * /clanHistory/{tag}:
- *   get:
+ *   post:
  *     tags:
  *       - Clan Endpoints
  *     summary: Get the history of a clan
@@ -313,7 +313,7 @@
 /**
  * @swagger
  * /clanMembersHistory/{tag}:
- *   get:
+ *   post:
  *     tags:
  *       - Clan Endpoints
  *     summary: Get the history of clan members

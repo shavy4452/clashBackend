@@ -17,95 +17,95 @@ class ApiRoutes {
 
 
   initializeRoutes() {
-    this.router.get('/health', (req, res) => {
+    this.router.post('/health', (req, res) => {
       res.status(200).json({ message: 'API is running' });
     });
 
-    this.router.get('/getClanInfo/:tag', 
+    this.router.post('/postClanInfo/:tag', 
       authenticate,
       rateLimitMiddleware, 
       this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
-      ClashController.getClanData);
+      ClashController.postClanData);
 
-    this.router.get('/getClanMembers/:tag',
+    this.router.post('/postClanMembers/:tag',
       authenticate,
       rateLimitMiddleware,
       this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
-      ClashController.getClanMembers);
+      ClashController.postClanMembers);
 
-    this.router.get('/getCapitalRaidSeasons/:tag',
+    this.router.post('/postCapitalRaidSeasons/:tag',
       authenticate,
       rateLimitMiddleware,
       this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
-      ClashController.getCapitalRaidSeasons);
+      ClashController.postCapitalRaidSeasons);
 
-    this.router.get('/getClanMembersHero/:tag',
+    this.router.post('/postClanMembersHero/:tag',
       authenticate,
       rateLimitMiddleware,
       this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
-      ClashController.getClanMembersHero);
+      ClashController.postClanMembersHero);
 
-    this.router.get('/getPlayersInfo/:tag'
+    this.router.post('/postPlayersInfo/:tag'
       , authenticate
       , rateLimitMiddleware
       , this.isProduction ? cachemiddleware(60) : cachemiddleware(0)
-      , ClashController.getPlayersInfo);
+      , ClashController.postPlayersInfo);
 
-    this.router.get('/getCurrentWar/:tag'
+    this.router.post('/postCurrentWar/:tag'
       , authenticate
       , rateLimitMiddleware
       , this.isProduction ? cachemiddleware(60) : cachemiddleware(0)
-      , ClashController.getCurrentWar);
+      , ClashController.postCurrentWar);
 
-    this.router.get('/getWarLog/:tag'
+    this.router.post('/postWarLog/:tag'
       , authenticate
       , rateLimitMiddleware
       , this.isProduction ? cachemiddleware(60) : cachemiddleware(0)
-      , ClashController.getClanWarLog);
+      , ClashController.postClanWarLog);
 
-    this.router.get('/getTHLevels/:tag'
+    this.router.post('/postTHLevels/:tag'
       , authenticate
       , rateLimitMiddleware
       , this.isProduction ? cachemiddleware(60) : cachemiddleware(0)
-      , ClashController.getTHLevels);
+      , ClashController.postTHLevels);
 
-    this.router.get('/getCWLresults/:tag'
+    this.router.post('/postCWLresults/:tag'
       , authenticate
       , rateLimitMiddleware
       , this.isProduction ? cachemiddleware(60) : cachemiddleware(0)
-      , ClashController.getCWLresults);
+      , ClashController.postCWLresults);
 
-    this.router.get('/getWarWeight/:tag'
+    this.router.post('/postWarWeight/:tag'
       , authenticate
       , rateLimitMiddleware
       , this.isProduction ? cachemiddleware(60) : cachemiddleware(0)
-      , ClashController.getWarWeight);
+      , ClashController.postWarWeight);
 
-    this.router.get('/db/getRecords/:phoneNumber'
+    this.router.post('/db/postRecords/:phoneNumber'
       , authenticate
       , rateLimitMiddleware
       , this.isProduction ? cachemiddleware(60) : cachemiddleware(0)
-      , LinkController.getRecords);
+      , LinkController.postRecords);
 
-    this.router.get('/db/addRecord/:PhoneNumber/:Type/:Tag/:Action'
+    this.router.post('/db/addRecord/:PhoneNumber/:Type/:Tag/:Action'
       , authenticate
       , rateLimitMiddleware
       , this.isProduction ? cachemiddleware(60) : cachemiddleware(0)
       , LinkController.addRecord);
 
-    this.router.get('/clanHistory/:tag'
+    this.router.post('/clanHistory/:tag'
       , authenticate
       , rateLimitMiddleware
-      , ClashController.getClanHistory);
+      , ClashController.postClanHistory);
 
-    this.router.get('/clanMembersHistory/:tag'
+    this.router.post('/clanMembersHistory/:tag'
       , authenticate
       , rateLimitMiddleware
-      , ClashController.getClanMembersHistory);
+      , ClashController.postClanMembersHistory);
 
   }
 
-  getRouter() {
+  postRouter() {
     return this.router;
   }
 }
