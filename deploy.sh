@@ -41,6 +41,7 @@ fi
 create_config() {
     echo "Creating $CONFIG_FILE..."
     mkdir -p $CONFIG_DIR
+    ls $CONFIG_DIR
     cat <<EOL > $CONFIG_FILE
 const config = {
     isProduction: true,
