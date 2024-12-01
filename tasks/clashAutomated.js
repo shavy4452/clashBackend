@@ -16,6 +16,7 @@ class ClashAutomated {
     async syncClashData() {
         await this.registerLifecycleEvents();
         this.registerClanEvents();
+        this.registerPlayerEvents();
 
         logger.info('Clan data sync started');
         try {
@@ -31,27 +32,140 @@ class ClashAutomated {
     async registerLifecycleEvents() {
         try {
             const clanTagsToSync = await this.getClanTagsToSync();
-            
-            if(clanTagsToSync.length === 0) return;
-
+    
+            if (clanTagsToSync.length === 0) return;
+    
+            // Ensure clan objects exist in the database
             await this.ensureClanObjects(clanTagsToSync);
     
+            // Sync all players from clans and database
+            const allPlayers = await this.syncAllClanPlayers(clanTagsToSync);
+            logger.info(`Synced total players: ${allPlayers.length}`);
+    
+            // Add clans to sync
             this.client.addClans(clanTagsToSync);
             clanTagsToSync.forEach(tag => this.syncedClans.add(tag));
     
+            // Register lifecycle events
             this.client.on('maintenanceStart', this.handleMaintenanceStart);
             this.client.on('maintenanceEnd', this.handleMaintenanceEnd);
             this.client.on('error', this.handleError);
             this.client.on('newSeasonStart', this.handleNewSeasonStart);
         } catch (error) {
+            console.log('Error:', error);
             logger.error('Error registering lifecycle events:', error);
         }
     }
+    
     
 
     async getClanTagsToSync() {
         const result = await this.mysqlService.execute('SELECT clanTag FROM clan WHERE isToBeSynced=1');
         return result.map((clan) => clan.clanTag);
+    }
+
+    async syncAllClanPlayers(clanTagsToSync) {
+        try {
+            const allMembers = [];
+    
+            // Fetch clan members
+            for (const tag of clanTagsToSync) {
+                const clan = await this.client.rest.getClanMembers(tag);
+                if (clan.res.ok) {
+                    const members = clan.body.items.map(member => member.tag.replace('#', ''));
+                    allMembers.push(...members);
+                } else {
+                    logger.warn(`Failed to fetch members for clan ${tag}`);
+                }
+            }
+    
+            // Get all players from the database
+            const databasePlayersQuery = `SELECT playerTag FROM player`;
+            const databasePlayers = await this.mysqlService.execute(databasePlayersQuery).then(rows =>
+                rows.map(row => row.playerTag)
+            );
+    
+            // Combine unique players (from clans and database)
+            const uniquePlayers = [...new Set([...allMembers, ...databasePlayers])];
+    
+            // Ensure player objects exist and add them to sync
+            await this.ensurePlayerObjects(uniquePlayers);
+            this.client.addPlayers(uniquePlayers);
+    
+            return uniquePlayers;
+        } catch (error) {
+            logger.error('Error syncing all clan players:', error);
+            return [];
+        }
+    }
+
+    async ensurePlayerObjects(playerTags) {
+        if (playerTags.length === 0) return;
+    
+        try {
+            // Fetch existing players
+            const playerTagsInSql = playerTags.map(tag => `'${tag}'`).join(',');
+            const existingPlayersQuery = `SELECT playerTag FROM player WHERE playerTag IN (${playerTagsInSql})`;
+            const existingPlayers = await this.mysqlService.execute(existingPlayersQuery).then(rows =>
+                rows.map(row => row.playerTag)
+            );
+    
+            // Identify missing players
+            const missingPlayers = playerTags.filter(tag => !existingPlayers.includes(tag));
+    
+            // Insert missing players
+            if (missingPlayers.length > 0) {
+                const playerValues = missingPlayers.map(tag => `('${tag}', 1, NOW(), NOW())`).join(',');
+                const insertQuery = `
+                    INSERT INTO player (playerTag, isToBeTracked, firstseen, lastsynced) 
+                    VALUES ${playerValues}
+                `;
+                await this.mysqlService.execute(insertQuery);
+                logger.info(`Inserted ${missingPlayers.length} new players.`);
+            }
+    
+            // Ensure current player objects are updated
+            await this.ensureCurrentPlayerObjects(playerTags);
+        } catch (error) {
+            logger.error('Error ensuring player objects:', error);
+        }
+    }
+
+    async ensureCurrentPlayerObjects(playerTags) {
+        if (playerTags.length === 0) return;
+    
+        try {
+            const playerTagsInSql = playerTags.map(tag => `'${tag}'`).join(',');
+            const getPlayerIDsQuery = `SELECT id, playerTag FROM player WHERE playerTag IN (${playerTagsInSql})`;
+            const playerIDs = await this.mysqlService.execute(getPlayerIDsQuery);
+    
+            if (playerIDs.length === 0) return;
+    
+            const existingPlayerIDsQuery = `SELECT playerid FROM currentplayerobject WHERE playerid IN (${playerIDs.map(player => player.id).join(',')})`;
+            const existingPlayerIDs = await this.mysqlService.execute(existingPlayerIDsQuery).then(rows =>
+                rows.map(row => row.playerid)
+            );
+    
+            const missingPlayers = playerIDs.filter(player => !existingPlayerIDs.includes(player.id));
+    
+            for (const player of missingPlayers) {
+                try {
+                    const getPlayer = await this.client.rest.getPlayer(player.playerTag);
+                    if (getPlayer.res.ok) {
+                        const playerJSON = JSON.stringify(getPlayer.body).replace(/'/g, "''");
+                        const insertQuery = `
+                            INSERT INTO currentplayerobject (playerid, playerJSON) 
+                            VALUES (?, ?)
+                        `;
+                        await this.mysqlService.execute(insertQuery, [player.id, playerJSON]);
+                    }
+                } catch (fetchError) {
+                    logger.warn(`Failed to fetch data for player ${player.playerTag}:`, fetchError);
+                }
+            }
+        } catch (error) {
+            logger.error('Error ensuring current player objects:', error);
+        }
     }
 
     async ensureClanObjects(clanTags) {
@@ -122,6 +236,45 @@ class ClashAutomated {
 
     handleNewSeasonStart() {
         logger.info('New season started');
+    }
+
+    registerPlayerEvents() {
+        this.client.setPlayerEvent({ name: 'playerNameChange', filter: (oldPlayer, newPlayer) => oldPlayer.name !== newPlayer.name });
+        this.client.setPlayerEvent({ name: 'playerRoleChange', filter: (oldPlayer, newPlayer) => oldPlayer.role !== newPlayer.role });
+        this.client.setPlayerEvent({ name: 'playerClanChange', filter: (oldPlayer, newPlayer) => oldPlayer.clan.tag !== newPlayer.clan.tag });
+        this.client.setPlayerEvent({ name: 'playerTownHallChange', filter: (oldPlayer, newPlayer) => oldPlayer.townHallLevel !== newPlayer.townHallLevel });
+        this.client.setPlayerEvent({ name: 'playerChangedClan', filter: (oldPlayer, newPlayer) => oldPlayer.clan.tag !== newPlayer.clan.tag });
+        this.client.setPlayerEvent({ name: 'playerJoinedClan', filter: (oldPlayer, newPlayer) => !oldPlayer.clan.tag && newPlayer.clan.tag });
+        this.client.setPlayerEvent({ name: 'playerLeftClan', filter: (oldPlayer, newPlayer) => oldPlayer.clan.tag && !newPlayer.clan.tag });
+        this.client.setPlayerEvent({ name: 'playerRoleChange', filter: (oldPlayer, newPlayer) => oldPlayer.role !== newPlayer.role });
+        
+
+    
+        this.client.on('playerNameChange', (oldPlayer, newPlayer) => 
+            this.logPlayerEvent('playerNameChange', oldPlayer, newPlayer, `Name changed from ${oldPlayer.name} to ${newPlayer.name}`)
+        );
+        this.client.on('playerRoleChange', (oldPlayer, newPlayer) => 
+            this.logPlayerEvent('playerRoleChange', oldPlayer, newPlayer, `Role changed from ${oldPlayer.role} to ${newPlayer.role}`)
+        );
+        this.client.on('playerClanChange', (oldPlayer, newPlayer) => 
+            this.logPlayerEvent('playerClanChange', oldPlayer, newPlayer, `Clan changed from ${oldPlayer.clan.tag} to ${newPlayer.clan.tag}`)
+        );
+        this.client.on('playerTownHallChange', (oldPlayer, newPlayer) => 
+            this.logPlayerEvent('playerTownHallChange', oldPlayer, newPlayer, `Town Hall level changed from ${oldPlayer.townHallLevel} to ${newPlayer.townHallLevel}`)
+        );
+        this.client.on('playerChangedClan', (oldPlayer, newPlayer) => 
+            this.logPlayerEvent('playerChangedClan', oldPlayer, newPlayer, `Joined clan ${newPlayer.clan.tag}`)
+        );
+        this.client.on('playerJoinedClan', (oldPlayer, newPlayer) => 
+            this.logPlayerEvent('playerJoinedClan', oldPlayer, newPlayer, `Joined clan ${newPlayer.clan.tag}`)
+        );
+        this.client.on('playerLeftClan', (oldPlayer, newPlayer) => 
+            this.logPlayerEvent('playerLeftClan', oldPlayer, newPlayer, `Left clan ${oldPlayer.clan.tag}`)
+        );
+        this.client.on('playerRoleChange', (oldPlayer, newPlayer) =>
+            this.logPlayerEvent('playerRoleChange', oldPlayer, newPlayer, `Role changed from ${oldPlayer.role} to ${newPlayer.role}`)
+        );
+
     }
 
     registerClanEvents() {
@@ -203,8 +356,12 @@ class ClashAutomated {
     }    
 
     handleClanMemberChange(oldClan, newClan) {
-        oldClan.members.forEach((oldMember) => {
-            if (!newClan.members.find((member) => member.tag === oldMember.tag)) {
+        const oldMembersMap = new Map(oldClan.members.map(member => [member.tag, member]));
+        const newMembersMap = new Map(newClan.members.map(member => [member.tag, member]));
+    
+        // Handle members who left the clan
+        oldClan.members.forEach(oldMember => {
+            if (!newMembersMap.has(oldMember.tag)) {
                 this.logClanEvent(
                     'clanMemberChange',
                     oldClan,
@@ -213,15 +370,34 @@ class ClashAutomated {
                 );
             }
         });
-
-        newClan.members.forEach((newMember) => {
-            if (!oldClan.members.find((member) => member.tag === newMember.tag)) {
+    
+        // Handle members who joined the clan
+        newClan.members.forEach(async newMember => {
+            if (!oldMembersMap.has(newMember.tag)) {
                 this.logClanEvent(
                     'clanMemberChange',
                     oldClan,
                     newClan,
                     `${newMember.name} (${newMember.tag}) joined the clan`
                 );
+    
+                // Ensure the new player is synced
+                const playerExistsQuery = `SELECT playerTag FROM player WHERE playerTag = ?`;
+                const playerExists = await this.mysqlService.execute(playerExistsQuery, [newMember.tag]);
+    
+                if (playerExists.length === 0) {
+                    // Add the new player to the database
+                    const insertPlayerQuery = `
+                        INSERT INTO player (playerTag, isToBeTracked, firstseen, lastsynced) 
+                        VALUES (?, 1, NOW(), NOW())
+                    `;
+                    await this.mysqlService.execute(insertPlayerQuery, [newMember.tag]);
+                    logger.info(`New player added to sync: ${newMember.tag}`);
+                }
+    
+                // Ensure player object exists
+                await this.ensurePlayerObjects([newMember.tag]);
+                this.client.addPlayers([newMember.tag]);
             }
         });
     }
@@ -253,6 +429,27 @@ class ClashAutomated {
             logger.error(`Failed to update clanJSON for clan: ${newClan.name} (${newClan.tag}):`, error);
         }
         logger.info(`Logged event: ${eventType} for clan: ${newClan.name}`);
+    }
+
+    async logPlayerEvent(eventType, oldPlayer, newPlayer, message) {
+        const playerJSON = JSON.stringify(newPlayer).replace(/'/g, "''"); // Prepare JSON for SQL
+    
+        // Log the event using the audit logger
+        this.auditLogger.addPlayerAuditLog(newPlayer.tag, message, eventType, newPlayer);
+    
+        // Update the database with the new JSON
+        try {
+            const updateQuery = `
+                UPDATE currentplayerobject 
+                SET playerJSON = ? 
+                WHERE playerid = (SELECT id FROM player WHERE playerTag = ? LIMIT 1)
+            `;
+            await this.mysqlService.execute(updateQuery, [playerJSON, newPlayer.tag]);
+            logger.info(`Updated playerJSON for player: ${newPlayer.name} (${newPlayer.tag})`);
+        } catch (error) {
+            logger.error(`Failed to update playerJSON for player: ${newPlayer.name} (${newPlayer.tag}):`, error);
+        }
+        logger.info(`Logged event: ${eventType} for player: ${newPlayer.name}`);
     }
 }
 
