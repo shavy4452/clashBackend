@@ -53,7 +53,7 @@ class AuditLogger {
                     const clan_id = clanIdResult[0].id; // Assuming 'id' is the field for clan id
                     
                     return {
-                        query: `INSERT INTO ClanAuditLogs(clan_id, event_type, detailedData, added_on) VALUES (?, ?, ?, ?)`,
+                        query: `INSERT INTO clanauditlogs(clan_id, event_type, detailedData, added_on) VALUES (?, ?, ?, ?)`,
                         params: [clan_id, log.eventType, log.message, log.timestamp],
                     };
                 })
