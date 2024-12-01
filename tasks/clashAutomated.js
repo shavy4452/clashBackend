@@ -61,7 +61,7 @@ class ClashAutomated {
     
             if (clanIDs.length === 0) return; 
     
-            const existingClanIDsQuery = `SELECT clanid FROM currentClanObject WHERE clanid IN (${clanIDs.map(clan => clan.id).join(',')})`;
+            const existingClanIDsQuery = `SELECT clanid FROM currentclanobject WHERE clanid IN (${clanIDs.map(clan => clan.id).join(',')})`;
             const existingClanIDs = await this.mysqlService.execute(existingClanIDsQuery).then(rows => rows.map(row => row.clanid));
     
             const missingClans = clanIDs.filter(clan => !existingClanIDs.includes(clan.id));
@@ -71,7 +71,7 @@ class ClashAutomated {
                     const getClan = await this.client.rest.getClan(clan.clanTag);
                     if (getClan.res.ok) {
                         const clanJSON = JSON.stringify(getClan.body).replace(/'/g, "''");
-                        const insertQuery = 'INSERT INTO currentClanObject (clanid, clanJSON) VALUES (?, ?)';
+                        const insertQuery = 'INSERT INTO currentclanobject (clanid, clanJSON) VALUES (?, ?)';
                         await this.mysqlService.execute(insertQuery, [clan.id, clanJSON]);
                     }
                 } catch (fetchError) {
@@ -242,7 +242,7 @@ class ClashAutomated {
         // Update the database with the new JSON
         try {
             const updateQuery = `
-                UPDATE currentClanObject 
+                UPDATE currentclanobject 
                 SET clanJSON = ? 
                 WHERE clanid = (SELECT id FROM clan WHERE clanTag = ? LIMIT 1)
             `;
