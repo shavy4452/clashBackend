@@ -23,9 +23,9 @@ class LinkController {
                 ClanRecord = [];
             }
             if (PlayerRecords && PlayerRecords.Ptag && PlayerRecords.Ptag.length > 0) {
-                PlayerRecords = PlayerRecords.Ptag.split(" ");
+                PlayerRecord = PlayerRecords.Ptag.split(" ");
             }else{
-                PlayerRecords = [];
+                PlayerRecord = [];
             }
             let records = {
                 ClanRecord,

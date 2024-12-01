@@ -32,7 +32,7 @@ class Server {
   initMiddlewares() {
     this.app.use(cors());
     this.app.disable('x-powered-by');
-    this.app.set('trust proxy', true);
+    this.app.set('trust proxy', false);
     this.app.set('etag', false);
     this.app.use(express.json());
     this.app.use(helmet());
