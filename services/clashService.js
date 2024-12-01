@@ -75,7 +75,7 @@ class ClashService {
 
     async getClanWarLog(clantag, limit=10){
         try{
-            let warlog = await this.client.getClanWarLog(clantag, { limit: limit});
+            let warlog = await this.client1.getClanWarLog(clantag, { limit: limit});
             if (!warlog) {
                 return JSON.parse('{"warlog": "private"}');
             }
