@@ -7,7 +7,7 @@ APP_NAME="clashBackend"       # Application name
 REPO_URL="git@github.com:shavy4452/clashBackend.git" # Replace with your repository URL
 APP_DIR="/data/$APP_NAME"     # Application directory
 BRANCH="main"                    # Branch to deploy
-CONFIG_DIR="/data/config"      # Configuration directory
+CONFIG_DIR="/data/config/"      # Configuration directory
 CONFIG_FILE="config.js"      # Configuration file
 
 echo "Starting deployment of $APP_NAME..."
@@ -39,7 +39,6 @@ if [ -f "package.json" ] && grep -q "\"build\"" package.json; then
 fi
 
 create_config() {
-    create_config() {
     echo "Creating $CONFIG_FILE..."
     mkdir -p $CONFIG_DIR
     cat <<EOL > $CONFIG_FILE
@@ -47,7 +46,7 @@ const config = {
     isProduction: true,
     env: "prod",
     port: 2229,
-    domain: "http://localhost:2229",
+    domain: "https://trackerapi.pandaclash.com",
     db: {
         host: "localhost",
         username: "root",
@@ -73,7 +72,7 @@ module.exports = config;
 EOL
     echo "$CONFIG_FILE created successfully."
 }
-}
+create_config
 
 # Step 5: Restart Application with PM2
 echo "Restarting application with PM2..."
