@@ -1,4 +1,3 @@
-// middleware/cacheMiddleware.js
 const NodeCache = require('node-cache');
 
 // cacheDuration is in seconds
@@ -7,17 +6,23 @@ const cacheMiddleware = (cacheDuration) => {
 
   return (req, res, next) => {
     const key = req.originalUrl || req.url;
+
+    // Check for the "x-bypass-cache" header
+    if (req.headers['x-bypass-cache'] === 'true') {
+      return next(); // Skip cache and fetch fresh data
+    }
+
     const cachedResponse = cache.get(key);
 
     if (cachedResponse) {
-      return res.json(cachedResponse);
+      return res.json(cachedResponse); // Serve cached response
     } else {
       res.sendResponse = res.json;
       res.json = (body) => {
-        cache.set(key, body, cacheDuration);
+        cache.set(key, body, cacheDuration); // Cache response
         res.sendResponse(body);
       };
-      next();
+      next(); // Proceed to next middleware/route
     }
   };
 };
