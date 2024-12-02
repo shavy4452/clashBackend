@@ -2,7 +2,7 @@ const NodeCache = require('node-cache');
 
 // cacheDuration is in seconds
 const cacheMiddleware = (cacheDuration) => {
-  const cache = new NodeCache({ stdTTL: cacheDuration, checkperiod: 120 });
+  const cache = new NodeCache({ stdTTL: cacheDuration, checkperiod: 60 });
 
   return (req, res, next) => {
     const key = req.originalUrl || req.url;
