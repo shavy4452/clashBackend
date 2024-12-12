@@ -104,6 +104,13 @@ class ClashAutomated {
     
         try {
             // Fetch existing players
+            if(playerTags.length > 0) {
+                for (let i = 0; i < playerTags.length; i++) {
+                    playerTags[i] = playerTags[i].replace('#', '');
+                }
+            }else{
+                return;
+            }
             const playerTagsInSql = playerTags.map(tag => `'${tag}'`).join(',');
             const existingPlayersQuery = `SELECT playerTag FROM player WHERE playerTag IN (${playerTagsInSql})`;
             const existingPlayers = await this.mysqlService.execute(existingPlayersQuery).then(rows =>
