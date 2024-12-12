@@ -5,6 +5,43 @@ const db = require('../services/mysqldbService.js');
 
 class ClashController {
 
+    static async getClansByLeague(req, res) {
+        try {
+            const { league } = req.params;
+            if (!league) {
+                return res.status(200).json({ success: false, message: 'League is required' });
+            }
+            const acceptableLeagues = ['1945', '1945_FD', 'GFL', 'BZLM', 'None', 'BL_FWL', 'BL_CROSS', 'BL_GFL', 'FWA', 'BL_FWA', 'FORMER']
+            if (!acceptableLeagues.includes(league)) {
+                return res.status(200).json({ success: false, message: 'Invalid league' });
+            }
+
+            var sqlQuery = 'SELECT * FROM leagueinfo WHERE majorLeagueInfo = ? OR minorLeagueInfo = ?';
+            var result = await db.execute(sqlQuery, [league, league]);
+            if (result.length === 0) {
+                return res.status(200).json({ success: false, message: 'No clans found in the league' });
+            }
+            var data = [];
+            for (var i = 0; i < result.length; i++) {
+                var clan = {};
+                sqlQuery = 'SELECT clanJSON FROM currentclanobject WHERE clanid = ?';
+                var clanData = await db.execute(sqlQuery, [result[i].clan_id]);
+                if (clanData.length > 0) {
+                    clan.name = clanData[0].clanJSON.name;
+                    clan.tag = clanData[0].clanJSON.tag;
+                    clan.type = clanData[0].clanJSON.type;
+                    clan.description = clanData[0].clanJSON.description;
+                    clan.members = clanData[0].clanJSON.members;
+                    data.push(clan);
+                }
+            }
+            return res.status(200).json({ success: true, data: data });
+        } catch (error) {
+            logger.error('Failed to get clans by league:' +  error);
+            return res.status(500).json({ success: false, message: 'Failed to get clans by league' });
+        }
+    }
+
     static async getPlayerStatus(req, res) {
         const { tag } = req.params;
         if (!tag) {
@@ -149,7 +186,7 @@ class ClashController {
         const publicNoteText = publicNote || "";
         const internalNoteText = internalNote || "";
 
-        const acceptableLeagues = ['1945', '1945 FD', 'GFL', 'BZLM', 'None', 'BL FWL', 'CROSS BL', 'BL GFL', 'FWA', 'BL FWA', 'FORMER']
+        const acceptableLeagues = ['1945', '1945_FD', 'GFL', 'BZLM', 'None', 'BL_FWL', 'BL_CROSS', 'BL_GFL', 'FWA', 'BL_FWA', 'FORMER']
 
         if (majorLeague && !acceptableLeagues.includes(majorLeague)) {
             return res.status(200).json({ success: false, message: 'Invalid Major League' });

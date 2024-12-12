@@ -158,6 +158,12 @@ class ApiRoutes {
       , rateLimitMiddleware
       //,  this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
       , ClashController.addPlayerNotes);
+
+    this.router.post('/getClansByLeague/:league'
+      , authenticate
+      , rateLimitMiddleware
+      //,  this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
+      , ClashController.getClansByLeague);
   }
 
   getRouter() {

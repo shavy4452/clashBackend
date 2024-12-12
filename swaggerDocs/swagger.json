@@ -705,6 +705,128 @@
         }
       }
     },
+    "/getClansByLeague/{league}": {
+      "post": {
+        "summary": "Get Clans by League",
+        "description": "Fetch a list of clans associated with a specific league.",
+        "tags": ["Clan Endpoints"],
+        "security": [{ "ApiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "league",
+            "in": "path",
+            "required": true,
+            "description": "The name of the league to filter clans by. Acceptable values are: 1945, 1945_FD, GFL, BZLM, None, BL_FWL, BL_CROSS, BL_GFL, FWA, BL_FWA, FORMER.",
+            "schema": {
+              "type": "string",
+              "enum": ["1945", "1945_FD", "GFL", "BZLM", "None", "BL_FWL", "BL_CROSS", "BL_GFL", "FWA", "BL_FWA", "FORMER"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with a list of clans.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "clanId": {
+                            "type": "integer",
+                            "example": 12345
+                          },
+                          "clanName": {
+                            "type": "string",
+                            "example": "Warriors"
+                          },
+                          "league": {
+                            "type": "string",
+                            "example": "Crystal League"
+                          },
+                          "memberCount": {
+                            "type": "integer",
+                            "example": 45
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid league parameter.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Invalid league parameter."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Unauthorized access."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Failed to fetch clans by league."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/addPlayerStatus/{tag}": {
       "post": {
         "summary": "Add Player Status",

@@ -90,6 +90,7 @@ class Logger {
    * @param {string | Error} error - Error message or object.
    */
   error(error) {
+    console.log(error);
     if (error instanceof Error) {
       // Log the stack trace if it's an Error object
       this.logger.error(error.stack || error.message);
