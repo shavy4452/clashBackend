@@ -248,12 +248,51 @@ class ClashAutomated {
     registerPlayerEvents() {
         this.client.setPlayerEvent({ name: 'playerNameChange', filter: (oldPlayer, newPlayer) => oldPlayer.name !== newPlayer.name });
         this.client.setPlayerEvent({ name: 'playerRoleChange', filter: (oldPlayer, newPlayer) => oldPlayer.role !== newPlayer.role });
-        this.client.setPlayerEvent({ name: 'playerClanChange', filter: (oldPlayer, newPlayer) => oldPlayer.clan.tag !== newPlayer.clan.tag });
+        this.client.setPlayerEvent({
+            name: 'playerClanChange',
+            filter: (oldPlayer, newPlayer) => {
+                const oldClanTag = oldPlayer.clan?.tag || null; // Safely access oldPlayer.clan.tag
+                const newClanTag = newPlayer.clan?.tag || null; // Safely access newPlayer.clan.tag
+                return oldClanTag !== newClanTag;
+            }
+        });        
         this.client.setPlayerEvent({ name: 'playerTownHallChange', filter: (oldPlayer, newPlayer) => oldPlayer.townHallLevel !== newPlayer.townHallLevel });
-        this.client.setPlayerEvent({ name: 'playerChangedClan', filter: (oldPlayer, newPlayer) => oldPlayer.clan.tag !== newPlayer.clan.tag });
-        this.client.setPlayerEvent({ name: 'playerJoinedClan', filter: (oldPlayer, newPlayer) => !oldPlayer.clan.tag && newPlayer.clan.tag });
-        this.client.setPlayerEvent({ name: 'playerLeftClan', filter: (oldPlayer, newPlayer) => oldPlayer.clan.tag && !newPlayer.clan.tag });
-        this.client.setPlayerEvent({ name: 'playerRoleChange', filter: (oldPlayer, newPlayer) => oldPlayer.role !== newPlayer.role });
+        this.client.setPlayerEvent({
+            name: 'playerChangedClan',
+            filter: (oldPlayer, newPlayer) => {
+                const oldClanTag = oldPlayer.clan?.tag || null;
+                const newClanTag = newPlayer.clan?.tag || null;
+                return oldClanTag !== newClanTag;
+            }
+        });
+        
+        this.client.setPlayerEvent({
+            name: 'playerJoinedClan',
+            filter: (oldPlayer, newPlayer) => {
+                const oldClanTag = oldPlayer.clan?.tag || null;
+                const newClanTag = newPlayer.clan?.tag || null;
+                return !oldClanTag && newClanTag;
+            }
+        });
+        
+        this.client.setPlayerEvent({
+            name: 'playerLeftClan',
+            filter: (oldPlayer, newPlayer) => {
+                const oldClanTag = oldPlayer.clan?.tag || null;
+                const newClanTag = newPlayer.clan?.tag || null;
+                return oldClanTag && !newClanTag;
+            }
+        });
+        
+        this.client.setPlayerEvent({
+            name: 'playerRoleChange',
+            filter: (oldPlayer, newPlayer) => {
+                const oldRole = oldPlayer.role || null;
+                const newRole = newPlayer.role || null;
+                return oldRole !== newRole;
+            }
+        });
+        
         
 
     
