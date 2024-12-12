@@ -5,6 +5,53 @@ const db = require('../services/mysqldbService.js');
 
 class ClashController {
 
+    static async getPlayersHistory(req, res) {
+        try{
+            var { tag } = req.params; // get player tag from URL
+            if (tag === undefined) {
+                return res.status(200).json({ success: false, message: 'Player tag is required' });
+            }
+    
+            const limit = parseInt(req.query.limit) || 10;
+    
+            tag = decodeURIComponent(tag);
+
+            if(tag.startsWith('#')) {
+                tag = tag.substring(1);
+            }
+
+            const checkTag = tag.startsWith('#') ? tag : `#${tag}`;
+            const isValid = await clashService.isPlayerTagValid(checkTag);
+
+            if (!isValid) {
+                return res.status(200).json({ success: false, message: 'Invalid player tag' });
+            }
+
+            var sqlQuery = 'SELECT id FROM player WHERE playerTag = ?';
+            var result = await db.execute(sqlQuery, [tag.toUpperCase()]);
+
+            if (result.length === 0) {
+                return res.status(200).json({ success: false, message: 'Player not found' });
+            }
+
+            sqlQuery = `SELECT * FROM playerauditlogs WHERE player_id=${parseInt(result[0].id)} ORDER BY added_on DESC LIMIT ${limit}`;
+            var dresult = await db.execute(sqlQuery);
+
+            if (dresult.length === 0) {
+                return res.status(200).json({ success: false, message: 'No history found' });
+            }
+            else{
+                return res.status(200).json({ success: true, data: dresult });
+            }
+        } catch (error) {
+            logger.error('Failed to get player history:', error);
+            console.log('Failed to get player history:', error);
+            return res.status(200).json({ success: false, message: 'Failed to get player history' });
+        }
+    }
+
+
+
     static async getClanHistory(req, res) {
         try {
             var { tag } = req.params; // get clan tag from URL
@@ -121,13 +168,12 @@ class ClashController {
                     result = await db.execute(sqlQuery, [result.insertId, 'Clan added to database', 'ADD', new Date()]);
                 }
 
-            }else{
-                
             }
             const data = await clashService.getClan(tag.toUpperCase());
             return res.status(200).json({ success: true, data: data });
         } catch (error) {
             if (error.status === 503 && error.reason === 'inMaintenance') {
+                var { tag } = req.params;
                 var sqlQuery = 'SELECT id FROM clan WHERE clanTag = ? AND isToBeSynced = 1';
                 var result = await db.execute(sqlQuery, [tag.toUpperCase()]);
                 if(result.length > 0) {
@@ -236,15 +282,35 @@ class ClashController {
 
     static async getPlayersInfo(req, res) {
         try {
-            const { tag } = req.params;
+            var { tag } = req.params;
             if (!tag) {
                 return res.status(200).json({ success: false, message: 'Player tag is required' });
             }
+            const checkTag = tag.startsWith('#') ? tag : `#${tag}`;
+            const isValid = await clashService.isPlayerTagValid(checkTag);
+            
+            if (!isValid) {
+                return res.status(200).json({ success: false, message: 'Invalid player tag' });
+            }
+
             const data = await clashService.getPlayersInfo(tag.toUpperCase());
             return res.status(200).json({ success: true, data: data });
         } catch (error) {
             if (error.status === 503 && error.reason === 'inMaintenance') {
+                var { tag } = req.params;
                 logger.error('Service is currently down for maintenance');
+                if(tag.startsWith('#')) {
+                    tag = tag.substring(1);
+                }
+                var sqlQuery = 'SELECT id FROM player WHERE playerTag = ? AND isToBeTracked = 1';
+                var result = await db.execute(sqlQuery, [tag.toUpperCase()]);
+                if(result.length > 0) {
+                    sqlQuery = 'SELECT playerJSON FROM currentplayerobject WHERE playerid = ?';
+                    result = await db.execute(sqlQuery, [result[0].id]);
+                    if(result.length > 0) {
+                        return res.status(200).json({ success: true, data:result[0].clanJSON });
+                    }
+                }
                 return res.status(200).json({ success: false, message: 'API is currently in maintenance, please come back later' });
             }
             if(error.reason === 'notFound' && error.status === 404) {

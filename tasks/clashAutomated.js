@@ -35,18 +35,14 @@ class ClashAutomated {
     
             if (clanTagsToSync.length === 0) return;
     
-            // Ensure clan objects exist in the database
             await this.ensureClanObjects(clanTagsToSync);
     
-            // Sync all players from clans and database
             const allPlayers = await this.syncAllClanPlayers(clanTagsToSync);
             logger.info(`Synced total players: ${allPlayers.length}`);
     
-            // Add clans to sync
             this.client.addClans(clanTagsToSync);
             clanTagsToSync.forEach(tag => this.syncedClans.add(tag));
     
-            // Register lifecycle events
             this.client.on('maintenanceStart', this.handleMaintenanceStart);
             this.client.on('maintenanceEnd', this.handleMaintenanceEnd);
             this.client.on('error', this.handleError);
@@ -68,7 +64,6 @@ class ClashAutomated {
         try {
             const allMembers = [];
     
-            // Fetch clan members
             for (const tag of clanTagsToSync) {
                 const clan = await this.client.rest.getClanMembers(tag);
                 if (clan.res.ok) {
@@ -79,7 +74,6 @@ class ClashAutomated {
                 }
             }
     
-            // Get all players from the database
             const databasePlayersQuery = `SELECT playerTag FROM player`;
             const databasePlayers = await this.mysqlService.execute(databasePlayersQuery).then(rows =>
                 rows.map(row => row.playerTag)
@@ -302,15 +296,42 @@ class ClashAutomated {
         this.client.on('playerRoleChange', (oldPlayer, newPlayer) => 
             this.logPlayerEvent('playerRoleChange', oldPlayer, newPlayer, `Role changed from ${oldPlayer.role} to ${newPlayer.role}`)
         );
-        this.client.on('playerClanChange', (oldPlayer, newPlayer) => 
-            this.logPlayerEvent('playerClanChange', oldPlayer, newPlayer, `Clan changed from ${oldPlayer.clan.tag} to ${newPlayer.clan.tag}`)
-        );
+        this.client.on('playerClanChange', (oldPlayer, newPlayer) => {
+            // If the player left the clan
+            if (oldPlayer.clan && !newPlayer.clan) {
+                this.logPlayerEvent('playerClanChange', oldPlayer, newPlayer, `Clan left: ${oldPlayer.clan.tag}`);
+            } 
+            // If the player joined a new clan
+            else if (!oldPlayer.clan && newPlayer.clan) {
+                this.logPlayerEvent('playerClanChange', oldPlayer, newPlayer, `Joined clan: ${newPlayer.clan.tag}`);
+            } 
+            // If the player changed from one clan to another
+            else if (oldPlayer.clan && newPlayer.clan) {
+                this.logPlayerEvent('playerClanChange', oldPlayer, newPlayer, `Clan changed from ${oldPlayer.clan.tag} to ${newPlayer.clan.tag}`);
+            } 
+            else {
+                console.error('Error: Both oldPlayer and newPlayer are clanless or data is missing.');
+            }
+        });
         this.client.on('playerTownHallChange', (oldPlayer, newPlayer) => 
             this.logPlayerEvent('playerTownHallChange', oldPlayer, newPlayer, `Town Hall level changed from ${oldPlayer.townHallLevel} to ${newPlayer.townHallLevel}`)
         );
-        this.client.on('playerChangedClan', (oldPlayer, newPlayer) => 
-            this.logPlayerEvent('playerChangedClan', oldPlayer, newPlayer, `Joined clan ${newPlayer.clan.tag}`)
-        );
+        this.client.on('playerChangedClan', (oldPlayer, newPlayer) => {
+            // Handle the case where the player has joined a new clan
+            if (!oldPlayer.clan && newPlayer.clan) {
+                this.logPlayerEvent('playerChangedClan', oldPlayer, newPlayer, `Joined clan ${newPlayer.clan.tag}`);
+            } 
+            else if (oldPlayer.clan && newPlayer.clan) {
+                this.logPlayerEvent('playerChangedClan', oldPlayer, newPlayer, `Changed clan from ${oldPlayer.clan.tag} to ${newPlayer.clan.tag}`);
+            }
+            else if (oldPlayer.clan && !newPlayer.clan) {
+                this.logPlayerEvent('playerChangedClan', oldPlayer, newPlayer, `Left clan ${oldPlayer.clan.tag}`);
+            }
+            // Handle other edge cases or errors
+            else {
+                console.error('Error: Unexpected player data or player already had a clan.');
+            }
+        });
         this.client.on('playerJoinedClan', (oldPlayer, newPlayer) => 
             this.logPlayerEvent('playerJoinedClan', oldPlayer, newPlayer, `Joined clan ${newPlayer.clan.tag}`)
         );

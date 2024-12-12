@@ -1,0 +1,491 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+      "title": "API Documentation",
+      "version": "1.0.0",
+      "description": "Comprehensive API documentation."
+    },
+    "paths": {
+      "/health": {
+        "post": {
+          "tags": ["Health"],
+          "summary": "Check API health",
+          "responses": {
+            "200": {
+              "description": "API is running"
+            }
+          }
+        }
+      },
+      "/generateToken": {
+        "post": {
+          "summary": "Generate a JWT token",
+          "description": "Generates a JWT token for the authenticated user with a 24-hour expiration.",
+          "tags": ["Authentication"],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "owner": {
+                      "type": "string",
+                      "example": "shavy"
+                    },
+                    "token": {
+                      "type": "string",
+                      "example": "rag"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Token successfully generated.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "token": {
+                        "type": "string",
+                        "description": "The generated JWT token."
+                      }
+                    }
+                  },
+                  "examples": {
+                    "success": {
+                      "summary": "Successful token generation",
+                      "value": {
+                        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJvd25lciI6InVzZXJfaWQiLCJpYXQiOjE2NDc1OTY4MDB9"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Unauthorized access. Authentication is required."
+            }
+          }
+        }
+      },
+      "/getClanInfo/{tag}": {
+        "post": {
+          "tags": ["Clan Endpoints"],
+          "summary": "Get information about a clan",
+          "parameters": [
+            {
+              "name": "tag",
+              "in": "path",
+              "required": true,
+              "description": "The tag of the clan",
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "security": [{ "ApiKeyAuth": [] }],
+          "responses": {
+            "200": {
+              "description": "Clan data retrieved successfully"
+            }
+          }
+        }
+      },
+      "/getClanMembers/{tag}": {
+        "post": {
+          "tags": ["Clan Endpoints"],
+          "summary": "Get members of a clan",
+          "parameters": [
+            {
+              "name": "tag",
+              "in": "path",
+              "required": true,
+              "description": "The tag of the clan",
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "security": [{ "ApiKeyAuth": [] }],
+          "responses": {
+            "200": {
+              "description": "Clan members retrieved successfully"
+            }
+          }
+        }
+      },
+      "/getCapitalRaidSeasons/{tag}": {
+        "post": {
+          "tags": ["Clan Endpoints"],
+          "summary": "Get capital raid seasons for a clan",
+          "parameters": [
+            {
+              "name": "tag",
+              "in": "path",
+              "required": true,
+              "description": "The tag of the clan",
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "security": [{ "ApiKeyAuth": [] }],
+          "responses": {
+            "200": {
+              "description": "Capital raid seasons data retrieved successfully"
+            }
+          }
+        }
+      },
+      "/getClanMembersHero/{tag}": {
+        "post": {
+          "tags": ["Clan Endpoints"],
+          "summary": "Get hero data for clan members",
+          "parameters": [
+            {
+              "name": "tag",
+              "in": "path",
+              "required": true,
+              "description": "The tag of the clan",
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "security": [{ "ApiKeyAuth": [] }],
+          "responses": {
+            "200": {
+              "description": "Hero data retrieved successfully"
+            }
+          }
+        }
+      },
+      "/getPlayersInfo/{tag}": {
+        "post": {
+          "tags": ["Player Endpoints"],
+          "summary": "Get player information",
+          "parameters": [
+            {
+              "name": "tag",
+              "in": "path",
+              "required": true,
+              "description": "The tag of the player",
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "security": [{ "ApiKeyAuth": [] }],
+          "responses": {
+            "200": {
+              "description": "Player information retrieved successfully"
+            }
+          }
+        }
+      },
+      "/getCurrentWar/{tag}": {
+        "post": {
+          "tags": ["War Endpoints"],
+          "summary": "Get the current war details",
+          "parameters": [
+            {
+              "name": "tag",
+              "in": "path",
+              "required": true,
+              "description": "The tag of the clan",
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "security": [{ "ApiKeyAuth": [] }],
+          "responses": {
+            "200": {
+              "description": "Current war details retrieved successfully"
+            }
+          }
+        }
+      },
+      "/getWarLog/{tag}": {
+        "post": {
+          "tags": ["War Endpoints"],
+          "summary": "Get the war log for a clan",
+          "parameters": [
+            {
+              "name": "tag",
+              "in": "path",
+              "required": true,
+              "description": "The tag of the clan",
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "security": [{ "ApiKeyAuth": [] }],
+          "responses": {
+            "200": {
+              "description": "War log retrieved successfully"
+            }
+          }
+        }
+      },
+      "/getTHLevels/{tag}": {
+        "post": {
+          "tags": ["Clan Endpoints"],
+          "summary": "Get Town Hall levels for clan members",
+          "parameters": [
+            {
+              "name": "tag",
+              "in": "path",
+              "required": true,
+              "description": "The tag of the clan",
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "security": [{ "ApiKeyAuth": [] }],
+          "responses": {
+            "200": {
+              "description": "Town Hall levels retrieved successfully"
+            }
+          }
+        }
+      },
+      "/getCWLresults/{tag}": {
+        "post": {
+          "tags": ["War Endpoints"],
+          "summary": "Get Clan War League results",
+          "parameters": [
+            {
+              "name": "tag",
+              "in": "path",
+              "required": true,
+              "description": "The tag of the clan",
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "security": [{ "ApiKeyAuth": [] }],
+          "responses": {
+            "200": {
+              "description": "CWL results retrieved successfully"
+            }
+          }
+        }
+      },
+      "/getWarWeight/{tag}": {
+        "post": {
+          "tags": ["War Endpoints"],
+          "summary": "Get the war weight of a clan",
+          "parameters": [
+            {
+              "name": "tag",
+              "in": "path",
+              "required": true,
+              "description": "The tag of the clan",
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "security": [{ "ApiKeyAuth": [] }],
+          "responses": {
+            "200": {
+              "description": "War weight retrieved successfully"
+            }
+          }
+        }
+      },
+      "/db/getRecords/{phoneNumber}": {
+        "post": {
+          "tags": ["Database Operations"],
+          "summary": "Get database records by phone number",
+          "parameters": [
+            {
+              "name": "phoneNumber",
+              "in": "path",
+              "required": true,
+              "description": "Phone number to query records",
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "security": [{ "ApiKeyAuth": [] }],
+          "responses": {
+            "200": {
+              "description": "Records retrieved successfully"
+            }
+          }
+        }
+      },
+      "/db/addRecord/{PhoneNumber}/{Type}/{Tag}/{Action}": {
+        "post": {
+          "tags": ["Database Operations"],
+          "summary": "Add a database record",
+          "parameters": [
+            {
+              "name": "PhoneNumber",
+              "in": "path",
+              "required": true,
+              "description": "Phone number for the record",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "Type",
+              "in": "path",
+              "required": true,
+              "description": "Record type",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "Tag",
+              "in": "path",
+              "required": true,
+              "description": "Record tag",
+              "schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "Action",
+              "in": "path",
+              "required": true,
+              "description": "Action performed",
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "security": [{ "ApiKeyAuth": [] }],
+          "responses": {
+            "200": {
+              "description": "Record added successfully"
+            }
+          }
+        }
+      },
+      "/getPlayersHistory/{tag}": {
+        "post": {
+          "tags": ["Player Endpoints"],
+          "summary": "Get the history of a player",
+          "parameters": [
+            {
+              "name": "tag",
+              "in": "path",
+              "required": true,
+              "description": "The tag of the player",
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "security": [{ "ApiKeyAuth": [] }],
+          "responses": {
+            "200": {
+              "description": "Player history retrieved successfully"
+            }
+          }
+        }
+      },
+      "/clanHistory/{tag}": {
+        "post": {
+          "tags": ["Clan Endpoints"],
+          "summary": "Get the history of a clan",
+          "parameters": [
+            {
+              "name": "tag",
+              "in": "path",
+              "required": true,
+              "description": "The tag of the clan",
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "security": [{ "ApiKeyAuth": [] }],
+          "responses": {
+            "200": {
+              "description": "Clan history retrieved successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "data": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "description": "Clan historical data"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/clanMembersHistory/{tag}": {
+        "post": {
+          "tags": ["Clan Endpoints"],
+          "summary": "Get the history of clan members",
+          "parameters": [
+            {
+              "name": "tag",
+              "in": "path",
+              "required": true,
+              "description": "The tag of the clan",
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "security": [{ "ApiKeyAuth": [] }],
+          "responses": {
+            "200": {
+              "description": "Clan members history retrieved successfully",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "membersHistory": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "description": "Clan members' historical data"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "securitySchemes": {
+        "ApiKeyAuth": {
+          "type": "apiKey",
+          "name": "Authorization",
+          "in": "header"
+        }
+      }
+    }
+  }
+  

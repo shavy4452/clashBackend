@@ -5,6 +5,7 @@ const cachemiddleware = require('../middleware/cacheMiddleware');
 const rateLimitMiddleware = require('../middleware/rateLimitMiddleware');
 const config = require('../config/config');
 const LinkController = require('../controllers/linkController');
+const jwt = require('jsonwebtoken');
 
 class ApiRoutes {
   constructor() {
@@ -19,6 +20,11 @@ class ApiRoutes {
   initializeRoutes() {
     this.router.post('/health', (req, res) => {
       res.status(200).json({ message: 'API is running' });
+    });
+
+    this.router.post('/generateToken', (req, res) => {
+      var generateToken = jwt.sign({ owner: req.body.owner }, req.body.token, { expiresIn: '24h' });
+      res.status(200).json({ token: generateToken });
     });
 
     this.router.post('/getClanInfo/:tag', 
@@ -50,6 +56,12 @@ class ApiRoutes {
       , rateLimitMiddleware
       //,  this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
       , ClashController.getPlayersInfo);
+
+    this.router.post('/getPlayersHistory/:tag'
+      , authenticate
+      , rateLimitMiddleware
+      //,  this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
+      , ClashController.getPlayersHistory);
 
     this.router.post('/getCurrentWar/:tag'
       , authenticate
