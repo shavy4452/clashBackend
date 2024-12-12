@@ -512,7 +512,12 @@ class ClashController {
                     sqlQuery = 'INSERT INTO clanauditlogs (clan_id, detailedData, event_type, added_on) VALUES (?, ?, ?, ?)';
                     result = await db.execute(sqlQuery, [result.insertId, 'Clan added to database', 'ADD', new Date()]);
                 }
-
+            }else{
+                sqlQuery = 'SELECT * from leagueinfo WHERE clan_id = ?';
+                result = await db.execute(sqlQuery, [result[0].id]);
+                if(result.length === 0) {
+                    result = [{majorLeagueInfo: 'No League Association', minorLeagueInfo: 'No League Association', publicNote: '', internalNote: ''}];
+                }
             }
             var data = await clashService.getClan(tag.toUpperCase());
             if (data.memberCount > 0) {
@@ -531,6 +536,7 @@ class ClashController {
                     }
                 });
             }
+            data.associationInfo = result[0];
             return res.status(200).json({ success: true, data: data });
         } catch (error) {
             if (error.status === 503 && error.reason === 'inMaintenance') {
