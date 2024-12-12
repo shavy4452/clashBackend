@@ -399,6 +399,175 @@
           }
         }
       },
+      "/getClanRankingsFromLocation/{locationId}": {
+      "post": {
+        "summary": "Get Clan Rankings from Location",
+        "description": "Fetches the rankings of clans from a given location.",
+        "tags": ["Location Endpoints"],
+        "security": [{ "ApiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "required": true,
+            "description": "ID of the location to get clan rankings from",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Limit the number of results returned. Defaults to 10 if not specified.",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with clan rankings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "clanId": { "type": "string" },
+                          "clanName": { "type": "string" },
+                          "rank": { "type": "integer" },
+                          "members": { "type": "integer" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/getPlayersRankingsFromLocation/{locationId}": {
+      "post": {
+        "summary": "Get Player Rankings from Location",
+        "description": "Fetches the rankings of players from a given location.",
+        "tags": ["Location Endpoints"],
+        "security": [{ "ApiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "required": true,
+            "description": "ID of the location to get player rankings from",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Limit the number of results returned. Defaults to 10 if not specified.",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with player rankings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "playerId": { "type": "string" },
+                          "playerName": { "type": "string" },
+                          "rank": { "type": "integer" },
+                          "level": { "type": "integer" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/getLocations": {
+      "post": {
+        "summary": "Get Available Locations",
+        "tags": ["Location Endpoints"],
+        "security": [{ "ApiKeyAuth": [] }],
+        "description": "Fetches a list of available locations.",
+        "responses": {
+          "200": {
+            "description": "Successful response with locations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                          "properties": {
+                              "locationId": { "type": "string" },
+                              "locationName": { "type": "string" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Internal server error"
+            }
+          }
+        }
+      },
       "/clanHistory/{tag}": {
         "post": {
           "tags": ["Clan Endpoints"],

@@ -73,6 +73,42 @@ class ClashService {
         return war;
     }
 
+    async getClanRankingsFromALocation(locationId, limit=100) {
+        try {
+            let clans = await this.client1.getClanRanks(locationId, { limit: limit });
+            return clans;
+        } catch (error) {
+            if (error.message != 'Requested resource was not found.') {
+                console.error(chalk.red('[ERROR] Error fetching clan rankings:', error));
+            }
+            return error;
+        }
+    }
+
+    async getLocations() {
+        try {
+            let locations = await this.client1.getLocations();
+            return locations;
+        } catch (error) {
+            if (error.message != 'Requested resource was not found.') {
+                console.error(chalk.red('[ERROR] Error fetching locations:', error));
+            }
+            return error;
+        }
+    }
+
+    async getPlayerRankingsFromALocation(locationId, limit=100) {
+        try {
+            let players = await this.client1.getPlayerRanks(locationId, { limit: limit });
+            return players;
+        } catch (error) {
+            if (error.message != 'Requested resource was not found.') {
+                console.error(chalk.red('[ERROR] Error fetching player rankings:', error));
+            }
+            return error;
+        }
+    }
+
     async getClanWarLog(clantag, limit=10){
         try{
             let warlog = await this.client1.getClanWarLog(clantag, { limit: limit});

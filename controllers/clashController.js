@@ -96,6 +96,65 @@ class ClashController {
         }
     }
 
+    static async getClanRankingsFromLocation(req, res) {
+        try {
+            var { locationId } = req.params;
+            if (!locationId) {
+                return res.status(200).json({ success: false, message: 'Location ID is required' });
+            }
+            // check if limit is provided in query, if not set it to 10
+            const limit = parseInt(req.query.limit) || 10;
+            const data = await clashService.getClanRankingsFromALocation(locationId, limit);
+            return res.status(200).json({ success: true, data: data });
+        } catch (error) {
+            if (error.status === 503 && error.reason === 'inMaintenance') {
+                logger.error('Service is currently down for maintenance');
+                return res.status(200).json({ success: false, message: 'API is currently in maintenance, please come back later' });
+            }
+            logger.error('Failed to get clan rankings from location:', error);
+            console.log('Failed to get clan rankings from location:', error);
+            return res.status(500).json({ success: false, message: 'Failed to get clan rankings from location' });
+        }
+    }
+
+
+
+    static async getLocations(req, res) {
+        try {
+            const data = await clashService.getLocations();
+            return res.status(200).json({ success: true, data: data });
+        } catch (error) {
+            if (error.status === 503 && error.reason === 'inMaintenance') {
+                logger.error('Service is currently down for maintenance');
+                return res.status(200).json({ success: false, message: 'API is currently in maintenance, please come back later' });
+            }
+            logger.error('Failed to get locations:', error);
+            console.log('Failed to get locations:', error);
+            return res.status(500).json({ success: false, message: 'Failed to get locations' });
+        }
+    }
+
+    static async getPlayersRankingsFromLocation(req, res) {
+        try {
+            var { locationId } = req.params;
+            if (!locationId) {
+                return res.status(200).json({ success: false, message: 'Location ID is required' });
+            }
+            const limit = parseInt(req.query.limit) || 10;
+            const data = await clashService.getPlayerRankingsFromALocation(locationId, limit);
+            return res.status(200).json({ success: true, data: data });
+        } catch (error) {
+            if (error.status === 503 && error.reason === 'inMaintenance') {
+                logger.error('Service is currently down for maintenance');
+                return res.status(200).json({ success: false, message: 'API is currently in maintenance, please come back later' });
+            }
+            logger.error('Failed to get player rankings from location:', error);
+            console.log('Failed to get player rankings from location:', error);
+            return res.status(500).json({ success: false, message: 'Failed to get player rankings from location' });
+        }
+    }
+
+
     static async getClanMembersHistory(req, res) {
         try {
             var { tag } = req.params; // get clan tag from URL
