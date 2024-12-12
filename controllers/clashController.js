@@ -278,8 +278,10 @@ class ClashController {
                 logger.error('Service is currently down for maintenance');
                 return res.status(200).json({ success: false, message: 'API is currently in maintenance, please come back later' });
             }
-            logger.error('Failed to get war log:', error);
-            return res.status(500).json({ success: false, message: 'Failed to get war log' });
+            if(error.reason === 'privateWarLog') {
+                return res.status(200).json({ success: false, message: 'Clan war log is private.' });
+            }
+            return res.status(500).json({ success: false, message: 'Failed to get clan war log' });
         }
     }
 

@@ -76,9 +76,6 @@ class ClashService {
     async getClanWarLog(clantag, limit=10){
         try{
             let warlog = await this.client1.getClanWarLog(clantag, { limit: limit});
-            if (!warlog) {
-                return JSON.parse('{"warlog": "private"}');
-            }
             return warlog;
         }catch(error){
             if (error.message != 'Requested resource was not found.') {
@@ -96,7 +93,8 @@ class ClashService {
             var clan = await this.client1.getClan(clantag);
             let THCounts = {
                 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 
-                9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0, 17: 0
+                9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 
+                14: 0, 15: 0, 16: 0, 17: 0
             };
             clan.members.forEach(member => {
                 const THLevel = member.townHallLevel;
@@ -380,8 +378,8 @@ class ClashService {
                 { level: 16, total: TH16 },
                 { level: 17, total: TH17 }
             ].filter((townHall) => townHall.total !== 0).reverse();
-            const estWeight = (TH16 * 170000) + (TH16 * 160000) + (TH15 * 150000) + (TH14 * 140000) + (TH13 * 125000) + (TH12 * 115000) + (TH11 * 102000) + (TH10 * 80000) + (TH09 * 63000) + (TH08 * 50000) + (TH07 * 38000) + (TH06 * 28000) + (TH05 * 18000) + (TH04 * 8000) + (TH03 * 6000)
-            const total = TH16 + TH15 + TH14 + TH13 + TH12 + TH11 + TH10 + TH09 + TH08 + TH07 + TH06 + TH05 + TH04 + TH03;
+            const estWeight = (TH17 * 165000) + (TH16 * 155000) + (TH15 * 145000) + (TH14 * 135000) + (TH13 * 125000) + (TH12 * 115000) + (TH11 * 102000) + (TH10 * 80000) + (TH09 * 63000) + (TH08 * 50000) + (TH07 * 38000) + (TH06 * 28000) + (TH05 * 18000) + (TH04 * 8000) + (TH03 * 6000)
+            const total = TH17 + TH16 + TH15 + TH14 + TH13 + TH12 + TH11 + TH10 + TH09 + TH08 + TH07 + TH06 + TH05 + TH04 + TH03;
             let resp = {
                 name: war.clan.name,
                 tag: war.clan.tag,
