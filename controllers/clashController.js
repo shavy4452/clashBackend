@@ -488,79 +488,110 @@ class ClashController {
 
     static async getClanData(req, res) {
         try {
-            var { tag } = req.params;
+            let { tag } = req.params;
+    
             if (!tag) {
                 return res.status(200).json({ success: false, message: 'Clan tag is required' });
             }
-            if (!clashService.isClanTagValid(tag.toUpperCase())) {
+    
+            tag = decodeURIComponent(tag).toUpperCase();
+            if (!clashService.isClanTagValid(tag)) {
                 return res.status(200).json({ success: false, message: 'Invalid clan tag' });
             }
-
-            tag = decodeURIComponent(tag);
-
-            if(tag.startsWith('#')) {
+    
+            if (tag.startsWith('#')) {
                 tag = tag.substring(1);
             }
-            var sqlQuery = 'SELECT * FROM clan WHERE clanTag = ?';
-            var result = await db.execute(sqlQuery, [tag.toUpperCase()]);
-            if(result.length === 0) {
-                sqlQuery = 'INSERT INTO clan (clanTag, isToBeSynced, firstseen, lastsynced) VALUES (?, ?, ?, ?)';
-                result = await db.execute(sqlQuery, [tag.toUpperCase(), 0, new Date(), new Date()]);
-                if (result.length === 0) {
-                    return res.status(200).json({ success: false, message: 'Failed to insert clan data' });
-                }else{
-                    sqlQuery = 'INSERT INTO clanauditlogs (clan_id, detailedData, event_type, added_on) VALUES (?, ?, ?, ?)';
-                    result = await db.execute(sqlQuery, [result.insertId, 'Clan added to database', 'ADD', new Date()]);
-                }
-            }else{
-                sqlQuery = 'SELECT * from leagueinfo WHERE clan_id = ?';
-                result = await db.execute(sqlQuery, [result[0].id]);
-                if(result.length === 0) {
-                    result = [{majorLeagueInfo: 'No League Association', minorLeagueInfo: 'No League Association', publicNote: '', internalNote: ''}];
+    
+            // Check if the clan exists in the database
+            const clanResult = await db.execute('SELECT * FROM clan WHERE clanTag = ?', [tag]);
+    
+            let clanId;
+            let associationInfo = { 
+                majorLeagueInfo: 'No League Association', 
+                minorLeagueInfo: 'No League Association', 
+                publicNote: '', 
+                internalNote: '' 
+            };
+    
+            if (clanResult.length === 0) {
+                // Clan not found, insert it
+                const insertClanResult = await db.execute(
+                    'INSERT INTO clan (clanTag, isToBeSynced, firstseen, lastsynced) VALUES (?, ?, ?, ?)',
+                    [tag, 0, new Date(), new Date()]
+                );
+                clanId = insertClanResult.insertId;
+    
+                // Add an audit log
+                await db.execute(
+                    'INSERT INTO clanauditlogs (clan_id, detailedData, event_type, added_on) VALUES (?, ?, ?, ?)',
+                    [clanId, 'Clan added to database', 'ADD', new Date()]
+                );
+            } else {
+                // Clan found, fetch additional association info
+                clanId = clanResult[0].id;
+                const leagueInfo = await db.execute('SELECT * FROM leagueinfo WHERE clan_id = ?', [clanId]);
+                if (leagueInfo.length > 0) {
+                    associationInfo = leagueInfo[0];
                 }
             }
-            var data = await clashService.getClan(tag.toUpperCase());
-            if (data.memberCount > 0) {
-                sqlQuery = 'SELECT playerTag, status FROM playercurrentstatus WHERE playerTag IN (?)';
-                const playerTags = data.members.map(member => member.tag.substring(1));
-                const placeholders = playerTags.map(() => '?').join(','); 
-                sqlQuery = `SELECT * FROM playercurrentstatus WHERE playerTag IN (${placeholders})`;
-                const playerStatus = await db.execute(sqlQuery, playerTags);
-                    
-                data.members.forEach(member => {
-                    var status = playerStatus.find(status => status.playerTag === member.tag.substring(1));
-                    if (status) {
-                        member.status = status.status;
-                    } else {
-                        member.status = 'NONE';
-                    }
+    
+            // Fetch live clan data
+            const clanData = await clashService.getClan(tag);
+    
+            // Update members with their statuses
+            if (clanData.memberCount > 0) {
+                const playerTags = clanData.members.map(member => member.tag.substring(1));
+                const placeholders = playerTags.map(() => '?').join(',');
+                const playerStatusQuery = `SELECT playerTag, status FROM playercurrentstatus WHERE playerTag IN (${placeholders})`;
+                const playerStatuses = await db.execute(playerStatusQuery, playerTags);
+    
+                clanData.members.forEach(member => {
+                    const statusEntry = playerStatuses.find(status => status.playerTag === member.tag.substring(1));
+                    member.status = statusEntry ? statusEntry.status : 'NONE';
                 });
             }
-            data.associationInfo = result[0];
-            return res.status(200).json({ success: true, data: data });
+    
+            // Attach association info
+            clanData.associationInfo = associationInfo;
+    
+            return res.status(200).json({ success: true, data: clanData });
         } catch (error) {
+            // Maintenance mode handling
             if (error.status === 503 && error.reason === 'inMaintenance') {
-                var { tag } = req.params;
-                var sqlQuery = 'SELECT id FROM clan WHERE clanTag = ? AND isToBeSynced = 1';
-                var result = await db.execute(sqlQuery, [tag.toUpperCase()]);
-                if(result.length > 0) {
-                    sqlQuery = 'SELECT clanJSON FROM currentclanobject WHERE clanid = ?';
-                    result = await db.execute(sqlQuery, [result[0].id]);
-                    if(result.length > 0) {
-                        return res.status(200).json({ success: true, data:result[0].clanJSON });
+                logger.error('Service is currently down for maintenance');
+                const { tag } = req.params;
+    
+                const maintenanceResult = await db.execute('SELECT id FROM clan WHERE clanTag = ? AND isToBeSynced = 1', [tag.toUpperCase()]);
+                if (maintenanceResult.length > 0) {
+                    const clanJSONResult = await db.execute('SELECT clanJSON FROM currentclanobject WHERE clanid = ?', [maintenanceResult[0].id]);
+                    if (clanJSONResult.length > 0) {
+                        const leagueInfoResult = await db.execute('SELECT * FROM leagueinfo WHERE clan_id = ?', [maintenanceResult[0].id]);
+                        const leagueInfo = leagueInfoResult.length > 0 ? leagueInfoResult[0] : {
+                            majorLeagueInfo: 'No League Association',
+                            minorLeagueInfo: 'No League Association',
+                            publicNote: '',
+                            internalNote: ''
+                        };
+                        clanJSONResult[0].clanJSON.associationInfo = leagueInfo;
+                        return res.status(200).json({ success: true, data: clanJSONResult[0].clanJSON });
                     }
                 }
-                logger.error('Service is currently down for maintenance');
                 return res.status(200).json({ success: false, message: 'API is currently in maintenance, please come back later' });
             }
-            if(error.reason === 'notFound') {
+    
+            // Clan not found
+            if (error.reason === 'notFound') {
                 return res.status(200).json({ success: false, message: 'Clan not found' });
             }
+    
+            // Log and return generic error
             logger.error('Failed to get clash data:', error);
-            console.log('Failed to get clash data:', error);
+            console.error('Failed to get clash data:', error);
             return res.status(500).json({ success: false, message: 'Failed to get clash data' });
         }
     }
+    
 
     static async getWarWeight(req, res){
         try {
@@ -653,40 +684,81 @@ class ClashController {
             if (!tag) {
                 return res.status(200).json({ success: false, message: 'Player tag is required' });
             }
+    
             const checkTag = tag.startsWith('#') ? tag : `#${tag}`;
             const isValid = await clashService.isPlayerTagValid(checkTag);
-            
             if (!isValid) {
                 return res.status(200).json({ success: false, message: 'Invalid player tag' });
             }
-
-            const data = await clashService.getPlayersInfo(tag.toUpperCase());
-            return res.status(200).json({ success: true, data: data });
+    
+            const playerTagUpperCase = tag.toUpperCase();
+            const data = await clashService.getPlayersInfo(playerTagUpperCase);
+    
+            if (tag.startsWith('#')) {
+                tag = tag.substring(1);
+            }
+    
+            // Check if the player exists and fetch necessary data
+            const playerResult = await db.execute('SELECT id FROM player WHERE playerTag = ?', [playerTagUpperCase]);
+    
+            let playerId;
+            if (playerResult.length === 0) {
+                // Insert the player if not found
+                const insertPlayerResult = await db.execute(
+                    'INSERT INTO player (playerTag, isToBeTracked, firstseen, lastsynced) VALUES (?, ?, ?, ?)',
+                    [playerTagUpperCase, 0, new Date(), new Date()]
+                );
+                playerId = insertPlayerResult.insertId;
+    
+                // Add an audit log
+                await db.execute(
+                    'INSERT INTO playerauditlogs (player_id, detailedData, event_type, added_on) VALUES (?, ?, ?, ?)',
+                    [playerId, 'Player added to database', 'ADD', new Date()]
+                );
+            } else {
+                playerId = playerResult[0].id;
+            }
+    
+            // Fetch current player status and notes
+            const [currentStatusResult, notesResult] = await Promise.all([
+                db.execute('SELECT * from playercurrentstatus WHERE playerTag = ?', [playerTagUpperCase]),
+                db.execute('SELECT * from playernotes WHERE player_id = ?', [playerId])
+            ]);
+    
+            // Set player status
+            const status = currentStatusResult.length > 0 ? currentStatusResult[0].status : 'NONE';
+            data.status = status;
+    
+            // Attach player notes (if any)
+            data.notes = notesResult.length > 0 ? notesResult : [];
+    
+            return res.status(200).json({ success: true, data });
         } catch (error) {
             if (error.status === 503 && error.reason === 'inMaintenance') {
-                var { tag } = req.params;
+                const { tag } = req.params;
                 logger.error('Service is currently down for maintenance');
-                if(tag.startsWith('#')) {
-                    tag = tag.substring(1);
-                }
-                var sqlQuery = 'SELECT id FROM player WHERE playerTag = ? AND isToBeTracked = 1';
-                var result = await db.execute(sqlQuery, [tag.toUpperCase()]);
-                if(result.length > 0) {
-                    sqlQuery = 'SELECT playerJSON FROM currentplayerobject WHERE playerid = ?';
-                    result = await db.execute(sqlQuery, [result[0].id]);
-                    if(result.length > 0) {
-                        return res.status(200).json({ success: true, data:result[0].clanJSON });
+    
+                // Check if player is to be tracked
+                const playerResult = await db.execute('SELECT id FROM player WHERE playerTag = ? AND isToBeTracked = 1', [tag.toUpperCase()]);
+                if (playerResult.length > 0) {
+                    const playerInfo = await db.execute('SELECT playerJSON FROM currentplayerobject WHERE playerid = ?', [playerResult[0].id]);
+                    if (playerInfo.length > 0) {
+                        return res.status(200).json({ success: true, data: playerInfo[0].clanJSON });
                     }
                 }
                 return res.status(200).json({ success: false, message: 'API is currently in maintenance, please come back later' });
             }
-            if(error.reason === 'notFound' && error.status === 404) {
+    
+            if (error.reason === 'notFound' && error.status === 404) {
                 return res.status(200).json({ success: false, message: 'Player not found' });
             }
-            logger.error('Failed to get clash members:', error);
+    
+            logger.error('Failed to get Player Info:', error);
+            console.log('Failed to get Player Info:', error);
             return res.status(500).json({ success: false, message: 'Failed to get Player Info' });
         }
     }
+    
 
     static async getCurrentWar(req, res) {
         try {
