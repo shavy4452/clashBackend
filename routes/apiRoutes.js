@@ -135,6 +135,29 @@ class ApiRoutes {
       //,  this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
       , ClashController.getPlayersRankingsFromLocation);
 
+    this.router.post('/get/ClanAssociation/:tag'
+      , authenticate
+      , rateLimitMiddleware
+      //,  this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
+      , ClashController.getClanAssociation);
+
+    this.router.post('/add/ClanAssociation/:tag'
+      , authenticate
+      , rateLimitMiddleware
+      //,  this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
+      , ClashController.addClanAssociation);
+
+    this.router.post('/getPlayerStatus/:tag'
+      , authenticate
+      , rateLimitMiddleware
+      //,  this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
+      , ClashController.getPlayerStatus);
+
+    this.router.post('/addPlayerStatus/:tag'
+      , authenticate
+      , rateLimitMiddleware
+      //,  this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
+      , ClashController.addPlayerNotes);
   }
 
   getRouter() {

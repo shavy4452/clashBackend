@@ -529,6 +529,249 @@
         }
       }
     },
+    "/get/ClanAssociation/{tag}": {
+      "post": {
+        "summary": "Get Clan Association",
+        "description": "Retrieve clan association details by clan tag.",
+        "tags": ["Association"],
+        "security": [{ "ApiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Clan tag to fetch association details for."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Clan association details fetched successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "clan_id": { "type": "integer" },
+                        "majorLeagueInfo": { "type": "string" },
+                        "minorLeagueInfo": { "type": "string" },
+                        "publicNote": { "type": "string" },
+                        "internalNote": { "type": "string" },
+                        "last_updated": { "type": "string", "format": "date-time" },
+                        "isSynced": { "type": "integer" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        }
+      }
+    },
+    "/add/ClanAssociation/{tag}": {
+      "post": {
+        "summary": "Add Clan Association",
+        "description": "Add or update clan association details by clan tag.",
+        "tags": ["Association"],
+        "security": [{ "ApiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Clan tag to add or update association details for."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "majorLeagueInfo": { "type": "string", "default": "" },
+                  "minorLeagueInfo": { "type": "string", "default": "" },
+                  "publicNote": { "type": "string", "default": "" },
+                  "internalNote": { "type": "string", "default": "" }
+                },
+                "required": ["majorLeagueInfo", "minorLeagueInfo", "publicNote", "internalNote"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Clan association details added or updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "clan_id": { "type": "integer" },
+                        "majorLeagueInfo": { "type": "string" },
+                        "minorLeagueInfo": { "type": "string" },
+                        "publicNote": { "type": "string" },
+                        "internalNote": { "type": "string" },
+                        "last_updated": { "type": "string", "format": "date-time" },
+                        "isSynced": { "type": "integer" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        }
+      }
+    },
+    "/getPlayerStatus/{tag}": {
+      "post": {
+        "summary": "Get Player Status",
+        "description": "Retrieve player status details by player tag.",
+        "tags": ["Association"],
+        "security": [{ "ApiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Player tag to fetch status details for."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Player status details fetched successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "playerTag": { "type": "string" },
+                        "status": { "type": "string" },
+                        "mapped_note_id": { "type": "integer" },
+                        "added_on": { "type": "string", "format": "date-time" },
+                        "updated_on": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        }
+      }
+    },
+    "/addPlayerStatus/{tag}": {
+      "post": {
+        "summary": "Add Player Status",
+        "description": "Add or update player status details by player tag.",
+        "tags": ["Association"],
+        "security": [{ "ApiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Player tag to add or update status details for."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "note_type": { "type": "string" },
+                  "note_detail": { "type": "string" },
+                  "note_added_by": { "type": "string" }
+                },
+                "required": ["note_type", "note_detail", "note_added_by"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Player status details added or updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "playerTag": { "type": "string" },
+                        "status": { "type": "string" },
+                        "mapped_note_id": { "type": "integer" },
+                        "added_on": { "type": "string", "format": "date-time" },
+                        "updated_on": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        }
+      }
+    },
     "/getLocations": {
       "post": {
         "summary": "Get Available Locations",

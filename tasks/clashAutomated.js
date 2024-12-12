@@ -39,6 +39,7 @@ class ClashAutomated {
     
             const allPlayers = await this.syncAllClanPlayers(clanTagsToSync);
             logger.info(`Synced total players: ${allPlayers.length}`);
+            logger.info(`Synced total clans: ${clanTagsToSync.length}`);
     
             this.client.addClans(clanTagsToSync);
             clanTagsToSync.forEach(tag => this.syncedClans.add(tag));
