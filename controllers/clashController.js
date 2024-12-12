@@ -514,7 +514,23 @@ class ClashController {
                 }
 
             }
-            const data = await clashService.getClan(tag.toUpperCase());
+            var data = await clashService.getClan(tag.toUpperCase());
+            if (data.memberCount > 0) {
+                sqlQuery = 'SELECT playerTag, status FROM playercurrentstatus WHERE playerTag IN (?)';
+                const playerTags = data.members.map(member => member.tag.substring(1));
+                const placeholders = playerTags.map(() => '?').join(','); 
+                sqlQuery = `SELECT * FROM playercurrentstatus WHERE playerTag IN (${placeholders})`;
+                const playerStatus = await db.execute(sqlQuery, playerTags);
+                    
+                data.members.forEach(member => {
+                    var status = playerStatus.find(status => status.playerTag === member.tag.substring(1));
+                    if (status) {
+                        member.status = status.status;
+                    } else {
+                        member.status = 'NONE';
+                    }
+                });
+            }
             return res.status(200).json({ success: true, data: data });
         } catch (error) {
             if (error.status === 503 && error.reason === 'inMaintenance') {
