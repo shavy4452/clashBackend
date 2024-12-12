@@ -19,7 +19,14 @@ class ClashController {
             if (tag.startsWith('#')) {
                 tag = tag.substring(1);
             }
-    
+
+            const checkTag = tag.startsWith('#') ? tag : `#${tag}`;
+            const isValid = await clashService.isClanTagValid(checkTag);
+
+            if (!isValid) {
+                return res.status(200).json({ success: false, message: 'Invalid clan tag' });
+            }
+
             var sqlQuery = 'SELECT id FROM clan WHERE clanTag = ?';
             var result = await db.execute(sqlQuery, [tag.toUpperCase()]);
     
@@ -56,7 +63,14 @@ class ClashController {
             if (tag.startsWith('#')) {
                 tag = tag.substring(1);
             }
-    
+
+            const checkTag = tag.startsWith('#') ? tag : `#${tag}`;
+            const isValid = await clashService.isClanTagValid(checkTag);
+
+            if (!isValid) {
+                return res.status(200).json({ success: false, message: 'Invalid clan tag' });
+            }
+
             var sqlQuery = 'SELECT id FROM clan WHERE clanTag = ?';
             var result = await db.execute(sqlQuery, [tag.toUpperCase()]);
     
@@ -142,6 +156,14 @@ class ClashController {
                 return res.status(200).json({ success: false, message: 'Clan tag is required' });
             }
             tag = decodeURIComponent(tag);
+
+            const checkTag = tag.startsWith('#') ? tag : `#${tag}`;
+            const isValid = await clashService.isClanTagValid(checkTag);
+
+            if (!isValid) {
+                return res.status(200).json({ success: false, message: 'Invalid clan tag' });
+            }
+
             const data = await clashService.getWarWeight(tag.toUpperCase());
             return res.status(200).json({ success: true, data: data });
         } catch (error) {
@@ -163,6 +185,14 @@ class ClashController {
             if (!tag) {
                 return res.status(200).json({ success: false, message: 'Clan tag is required' });
             }
+
+            const checkTag = tag.startsWith('#') ? tag : `#${tag}`;
+            const isValid = await clashService.isClanTagValid(checkTag);
+
+            if (!isValid) {
+                return res.status(200).json({ success: false, message: 'Invalid clan tag' });
+            }
+
             const data = await clashService.getClanMembers(tag.toUpperCase());
             return res.status(200).json({ success: true, data: data });
         } catch (error) {
@@ -184,6 +214,14 @@ class ClashController {
             if (!tag) {
                 return res.status(200).json({ success: false, message: 'Clan tag is required' });
             }
+
+            const checkTag = tag.startsWith('#') ? tag : `#${tag}`;
+            const isValid = await clashService.isClanTagValid(checkTag);
+
+            if (!isValid) {
+                return res.status(200).json({ success: false, message: 'Invalid clan tag' });
+            }
+
             const data = await clashService.getClanMembersHero(tag.toUpperCase());
             return res.status(200).json({ success: true, data: data });
         } catch (error) {
@@ -223,6 +261,15 @@ class ClashController {
             if (!tag) {
                 return res.status(200).json({ success: false, message: 'Clan tag is required' });
             }
+
+            const checkTag = tag.startsWith('#') ? tag : `#${tag}`;
+            const isValid = await clashService.isClanTagValid(checkTag);
+
+            if (!isValid) {
+                return res.status(200).json({ success: false, message: 'Invalid clan tag' });
+            }
+
+
             const data = await clashService.getCurrentWar(tag.toUpperCase());
             return res.status(200).json({ success: true, data: data });
 
@@ -234,6 +281,9 @@ class ClashController {
             if (error.reason === 'notFound') {
                 return res.status(200).json({ success: false, message: 'Access denied, clan war log is private.' });
             }
+            if(error.reason === 'privateWarLog') {
+                return res.status(200).json({ success: false, message: 'Clan war log is private.' });
+            }
             logger.error('Failed to get current war:' + error.reason);
             return res.status(500).json({ success: false, message: 'Failed to get current war' });
         }
@@ -241,10 +291,17 @@ class ClashController {
     
     static async getCapitalRaidSeasons(req, res) {
         try {
-            const { tag } = req.params;
+            var { tag } = req.params;
 
             if (!tag) {
             return res.status(200).json({ success: false, message: 'Clan tag is required' });
+            }
+
+            const checkTag = tag.startsWith('#') ? tag : `#${tag}`;
+            const isValid = await clashService.isClanTagValid(checkTag);
+
+            if (!isValid) {
+                return res.status(200).json({ success: false, message: 'Invalid clan tag' });
             }
 
             const data = await clashService.getCapitalRaidSeasons(tag.toUpperCase());
@@ -270,7 +327,17 @@ class ClashController {
 
     static async getClanWarLog(req, res) {
         try {
-            const { tag } = req.params;
+            var { tag } = req.params;
+            if(!tag) {
+                return res.status(200).json({ success: false, message: 'Clan tag is required' });
+            }
+            const checkTag = tag.startsWith('#') ? tag : `#${tag}`;
+            const isValid = await clashService.isClanTagValid(checkTag);
+
+            if (!isValid) {
+                return res.status(200).json({ success: false, message: 'Invalid clan tag' });
+            }
+
             const data = await clashService.getClanWarLog(tag.toUpperCase());
             return res.status(200).json({ success: true, data: data });
         } catch (error) {
@@ -281,13 +348,28 @@ class ClashController {
             if(error.reason === 'privateWarLog') {
                 return res.status(200).json({ success: false, message: 'Clan war log is private.' });
             }
+            if(error.reason === 'notFound') {
+                return res.status(200).json({ success: false, message: 'Clan war log not found.' });
+            }
+            console.log('Failed to get clan war log:', error);
             return res.status(500).json({ success: false, message: 'Failed to get clan war log' });
         }
     }
 
     static async getTHLevels(req, res) {
         try {
-            const { tag } = req.params;
+            var { tag } = req.params;
+            if(!tag) {
+                return res.status(200).json({ success: false, message: 'Clan tag is required' });
+            }
+            
+            const checkTag = tag.startsWith('#') ? tag : `#${tag}`;
+            const isValid = await clashService.isClanTagValid(checkTag);
+
+            if (!isValid) {
+                return res.status(200).json({ success: false, message: 'Invalid clan tag' });
+            }
+
             const data = await clashService.getTHLevels(tag.toUpperCase());
             return res.status(200).json({ success: true, data: data });
         } catch (error) {
@@ -303,7 +385,16 @@ class ClashController {
 
     static async getCWLresults(req, res) {
         try {
-            const { tag } = req.params;
+            var { tag } = req.params;
+            if (!tag) {
+                return res.status(200).json({ success: false, message: 'Clan tag is required' });
+            }
+            const checkTag = tag.startsWith('#') ? tag : `#${tag}`;
+            const isValid = await clashService.isClanTagValid(checkTag);
+
+            if (!isValid) {
+                return res.status(200).json({ success: false, message: 'Invalid clan tag' });
+            }
             const data = await clashService.getCWLresults(tag.toUpperCase());
             return res.status(200).json({ success: true, data: data });
         } catch (error) {
