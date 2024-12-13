@@ -8,6 +8,7 @@ const LinkController = require('../controllers/linkController');
 const AdminController = require('../controllers/adminController');
 const jwt = require('jsonwebtoken');
 const secret = require('../middleware/secretMiddleware');
+const BandController = require('../controllers/bandController');
 
 class ApiRoutes {
   constructor() {
@@ -198,6 +199,12 @@ class ApiRoutes {
       rateLimitMiddleware,
       // this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
       AdminController.validateToken);
+
+    this.router.get('/createSyncNotificationBand/:bandNo',
+      authenticate,
+      rateLimitMiddleware,
+      // this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
+      BandController.createSyncBandPost);
 
   }
 

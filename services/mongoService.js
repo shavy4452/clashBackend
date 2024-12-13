@@ -9,7 +9,9 @@ const mongoURI = config.mongoDB.url;
 class MongoService {
     constructor() {
         this.client = new MongoClient(mongoURI);
+        this.client2 = new MongoClient(config.bandCreds);
         this.db = null;
+        this.db2 = null;
     }
 
     /**
@@ -136,6 +138,22 @@ class MongoService {
         } catch (error) {
             logger.error('Error deleting document:', error);
             throw error;
+        }
+    }
+
+    /**
+     *  Get Band Credentials
+     */
+    async getCredentialBand(){
+        try{
+            await this.client2.connect();
+            this.db2 = this.client2.db('Band');
+            const col = this.db2.collection("Creds");
+            const result = await col.findOne({ _id: 0 });
+            return result;
+        }catch(error){
+            logger.error('MongoDB connection error:', error);
+            process.exit(1);
         }
     }
 }
