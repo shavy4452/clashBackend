@@ -2,6 +2,7 @@ const clashService = require('../services/clashService');
 const logger = require('../utils/logger');
 const mysqlService = require('../services/mysqldbService');
 const AuditLogger = require('../utils/AuditLogger.js');
+const fs = require('fs');
 
 class ClashAutomated {
     constructor() {
@@ -661,42 +662,46 @@ class ClashAutomated {
         const warJSON = JSON.stringify(newWar).replace(/'/g, "''");
         try {
             if(eventType === 'warEnd'){
+                console.log('oldWar:', oldWar);
+                console.log('newWar:', newWar);
+                // save in a file
+                fs.writeFileSync('warEnd.json', JSON.stringify(newWar, null, 2));
+                fs.writeFileSync('warEndOld.json', JSON.stringify(oldWar, null, 2));
                 const updateQuery = `
                     UPDATE warlogrecords 
                     SET warLogJSON = ?, clanStars = ?, opponentStars = ?, trackedState = ? 
                     WHERE clan_id = (SELECT id FROM clan WHERE clanTag = ? LIMIT 1) AND endTime = ?
                 `;
-                await this.mysqlService.execute(updateQuery, [warJSON, newWar.clan.stars, newWar.opponent.stars, newWar.state, newWar.clan.tag, newWar.endTime]);
-
-                const clanTag = newWar.clan.tag.replace('#', '');
-                const opponentTag = newWar.opponent.tag.replace('#', '');
-                for (members in newWar.clan.members) {
-                    var auditMessage = '';
-                    if (members.attacks.length > 0) {
-                        for (attack in members.attacks) {
-                            if (attack.length > 0) {
-                                const playerTag = members.tag.replace('#', '');
-                                const opponentTag = attack.defenderTag.replace('#', '');
-                                const stars = attack.stars;
-                                const destructionPercentage = attack.destructionPercentage;
-                                const mapPosition = attack.mapPosition;
-                                auditMessage = `Player ${playerTag} attacked ${opponentTag} and got ${stars} stars with ${destructionPercentage}% destruction in war against ${opponentTag} at map position ${mapPosition}`;
-                                console.log(auditMessage);
-                                this.auditLogger.addPlayerAuditLog(playerTag, auditMessage, 'playerAttacked', members);
+                await this.mysqlService.execute(updateQuery, [warJSON, newWar.clan.stars, newWar.opponent.stars, newWar.state, newWar.clan.tag.replace('#', ''), ""+newWar.endTime+""]);
+                if(newWar.clan.members.length > 0){
+                    for (members in newWar.clan.members) {
+                        var auditMessage = '';
+                        if (members.attacks.length > 0) {
+                            for (attack in members.attacks) {
+                                if (attack.length > 0) {
+                                    const playerTag = members.tag.replace('#', '');
+                                    const opponentTag = attack.defenderTag.replace('#', '');
+                                    const stars = attack.stars;
+                                    const destructionPercentage = attack.destructionPercentage;
+                                    const mapPosition = attack.mapPosition;
+                                    auditMessage = `Player ${playerTag} attacked ${opponentTag} and got ${stars} stars with ${destructionPercentage}% destruction in war against ${opponentTag} at map position ${mapPosition}`;
+                                    console.log(auditMessage);
+                                    this.auditLogger.addPlayerAuditLog(playerTag, auditMessage, 'playerAttacked', members);
+                                }
                             }
                         }
-                    }
-                    if (members.bestOpponentAttack.length > 0) {
-                        for (bestOpponentAttack in members.bestOpponentAttack) {
-                            if (bestOpponentAttack.length > 0) {
-                                const playerTag = members.tag.replace('#', '');
-                                const opponentTag = bestOpponentAttack.attackerTag.replace('#', '');
-                                const stars = bestOpponentAttack.stars;
-                                const destructionPercentage = bestOpponentAttack.destructionPercentage;
-                                const mapPosition = bestOpponentAttack.mapPosition;
-                                auditMessage = `Player ${playerTag} was attacked by ${opponentTag} and got ${stars} stars with ${destructionPercentage}% destruction in war against ${opponentTag} at map position ${mapPosition}`;
-                                console.log(auditMessage);
-                                this.auditLogger.addPlayerAuditLog(playerTag, auditMessage, 's', members);
+                        if (members.bestOpponentAttack.length > 0) {
+                            for (bestOpponentAttack in members.bestOpponentAttack) {
+                                if (bestOpponentAttack.length > 0) {
+                                    const playerTag = members.tag.replace('#', '');
+                                    const opponentTag = bestOpponentAttack.attackerTag.replace('#', '');
+                                    const stars = bestOpponentAttack.stars;
+                                    const destructionPercentage = bestOpponentAttack.destructionPercentage;
+                                    const mapPosition = bestOpponentAttack.mapPosition;
+                                    auditMessage = `Player ${playerTag} was attacked by ${opponentTag} and got ${stars} stars with ${destructionPercentage}% destruction in war against ${opponentTag} at map position ${mapPosition}`;
+                                    console.log(auditMessage);
+                                    this.auditLogger.addPlayerAuditLog(playerTag, auditMessage, 's', members);
+                                }
                             }
                         }
                     }

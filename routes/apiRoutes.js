@@ -5,7 +5,9 @@ const cachemiddleware = require('../middleware/cacheMiddleware');
 const rateLimitMiddleware = require('../middleware/rateLimitMiddleware');
 const config = require('../config/config');
 const LinkController = require('../controllers/linkController');
+const AdminController = require('../controllers/adminController');
 const jwt = require('jsonwebtoken');
+const secret = require('../middleware/secretMiddleware');
 
 class ApiRoutes {
   constructor() {
@@ -18,7 +20,7 @@ class ApiRoutes {
 
 
   initializeRoutes() {
-    this.router.post('/health', (req, res) => {
+    this.router.get('/health', (req, res) => {
       res.status(200).json({ message: 'API is running' });
     });
 
@@ -143,6 +145,7 @@ class ApiRoutes {
 
     this.router.post('/add/ClanAssociation/:tag'
       , authenticate
+      , secret
       , rateLimitMiddleware
       //,  this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
       , ClashController.addClanAssociation);
@@ -155,6 +158,7 @@ class ApiRoutes {
 
     this.router.post('/addPlayerStatus/:tag'
       , authenticate
+      , secret
       , rateLimitMiddleware
       //,  this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
       , ClashController.addPlayerNotes);
@@ -164,6 +168,31 @@ class ApiRoutes {
       , rateLimitMiddleware
       //,  this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
       , ClashController.getClansByLeague);
+
+    this.router.post('/register',
+      authenticate,
+      rateLimitMiddleware,
+      // this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
+      AdminController.register);
+
+    this.router.post('/login',
+      authenticate,
+      rateLimitMiddleware,
+      // this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
+      AdminController.login);
+
+    this.router.post('/logout',
+      authenticate,
+      rateLimitMiddleware,
+      // this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
+      AdminController.logout);
+
+    this.router.post('/validateToken',
+      authenticate,
+      rateLimitMiddleware,
+      // this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
+      AdminController.validateToken);
+
   }
 
   getRouter() {

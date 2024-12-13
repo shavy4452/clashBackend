@@ -6,22 +6,13 @@
       "description": "Comprehensive API documentation."
     },
     "paths": {
-      "/health": {
+      "/login": {
         "post": {
-          "tags": ["Health"],
-          "summary": "Check API health",
-          "responses": {
-            "200": {
-              "description": "API is running"
-            }
-          }
-        }
-      },
-      "/generateToken": {
-        "post": {
-          "summary": "Generate a JWT token",
-          "description": "Generates a JWT token for the authenticated user with a 24-hour expiration.",
+          "summary": "User Login",
+          "description": "Authenticate an admin user and generate a JWT token.",
           "tags": ["Authentication"],
+
+          "security": [{ "ApiKeyAuth": [] }],
           "requestBody": {
             "required": true,
             "content": {
@@ -29,38 +20,141 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "owner": {
+                    "user_email": {
                       "type": "string",
-                      "example": "shavy"
+                      "example": "random@org.org"
                     },
-                    "token": {
+                    "user_password": {
                       "type": "string",
-                      "example": "rag"
+                      "example": "randomFun"
                     }
-                  }
+                  },
+                  "required": ["user_email", "user_password"]
                 }
               }
             }
           },
           "responses": {
             "200": {
-              "description": "Token successfully generated.",
+              "description": "Successful login",
               "content": {
                 "application/json": {
                   "schema": {
                     "type": "object",
                     "properties": {
+                      "success": {
+                        "type": "boolean",
+                        "example": true
+                      },
+                      "message": {
+                        "type": "string",
+                        "example": "User logged in successfully"
+                      },
                       "token": {
                         "type": "string",
-                        "description": "The generated JWT token."
+                        "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2VtYWlsIjoicmFuZG9tQG9yZy5vcmciLCJ1c2VyX2lkIjoxLCJ1c2VyX2xldmVsIjoiU1VQRVJfQURNSU4iLCJpYXQiOjE3MzQwODk1NDUsImV4cCI6MTczNDA5MzE0NX0.ej9hLIQdXJtHVCvs87Zn3QTHH7uaR6YaX2RYylIsWgk"
                       }
                     }
-                  },
-                  "examples": {
-                    "success": {
-                      "summary": "Successful token generation",
-                      "value": {
-                        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJvd25lciI6InVzZXJfaWQiLCJpYXQiOjE2NDc1OTY4MDB9"
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Invalid email or password",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "success": {
+                        "type": "boolean",
+                        "example": false
+                      },
+                      "message": {
+                        "type": "string",
+                        "example": "Invalid email or password"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/logout": {
+        "post": {
+          "summary": "User Logout",
+          "description": "Logout the currently authenticated user.",
+          "tags": ["Authentication"],
+          "security": [{ "ApiKeyAuth": [] }],
+          "parameters": [
+            {
+              "name": "secret",
+              "in": "header",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "example": "<token>"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Successful logout",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "success": {
+                        "type": "boolean",
+                        "example": true
+                      },
+                      "message": {
+                        "type": "string",
+                        "example": "User logged out successfully"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/validateToken": {
+        "post": {
+          "summary": "Validate Token",
+          "description": "Validate the provided JWT token.",
+          "tags": ["Authentication"],
+          "security": [{ "ApiKeyAuth": [] }],
+          "parameters": [
+            {
+              "name": "secret",
+              "in": "header",
+              "required": true,
+              "schema": {
+                "type": "string"
+              },
+              "example": "<token>"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Token is valid",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "success": {
+                        "type": "boolean",
+                        "example": true
+                      },
+                      "message": {
+                        "type": "string",
+                        "example": "Token is valid"
                       }
                     }
                   }
@@ -68,7 +162,35 @@
               }
             },
             "401": {
-              "description": "Unauthorized access. Authentication is required."
+              "description": "Invalid or expired token",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "success": {
+                        "type": "boolean",
+                        "example": false
+                      },
+                      "message": {
+                        "type": "string",
+                        "example": "Token is invalid or expired"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/health": {
+        "get": {
+          "tags": ["Health"],
+          "summary": "Check API health",
+          "responses": {
+            "200": {
+              "description": "API is running"
             }
           }
         }
@@ -598,6 +720,15 @@
               "type": "string"
             },
             "description": "Clan tag to add or update association details for."
+          },
+          {
+            "name": "secret",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "<token>"
           }
         ],
         "requestBody": {
@@ -842,6 +973,15 @@
               "type": "string"
             },
             "description": "Player tag to add or update status details for."
+          },
+          {
+            "name": "secret",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "<token>"
           }
         ],
         "requestBody": {
