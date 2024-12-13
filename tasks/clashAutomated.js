@@ -17,6 +17,7 @@ class ClashAutomated {
         await this.registerLifecycleEvents();
         this.registerClanEvents();
         this.registerPlayerEvents();
+        this.registerWarEvents();
 
         logger.info('Clan data sync started');
         try {
@@ -36,12 +37,15 @@ class ClashAutomated {
             if (clanTagsToSync.length === 0) return;
     
             await this.ensureClanObjects(clanTagsToSync);
+            await this.ensureWarObjects(clanTagsToSync);
     
             const allPlayers = await this.syncAllClanPlayers(clanTagsToSync);
             logger.info(`Synced total players: ${allPlayers.length}`);
             logger.info(`Synced total clans: ${clanTagsToSync.length}`);
+            logger.info(`Synced total wars: ${clanTagsToSync.length}`);
     
             this.client.addClans(clanTagsToSync);
+            this.client.addWars(clanTagsToSync);
             clanTagsToSync.forEach(tag => this.syncedClans.add(tag));
     
             this.client.on('maintenanceStart', this.handleMaintenanceStart);
@@ -91,6 +95,87 @@ class ClashAutomated {
         } catch (error) {
             logger.error('Error syncing all clan players:', error);
             return [];
+        }
+    }
+
+    async ensureWarObjects(clanTags) {
+        if (clanTags.length === 0) return;
+        try {
+            let sqlQuery = '';
+            let successCount = 0;
+            let failureCount = 0;
+            let alreadyExistsCount = 0;
+            const getWarIDsQuery = `SELECT id, clanTag FROM clan WHERE clanTag IN (${clanTags.map(tag => `'${tag}'`).join(',')})`;
+            const warIDs = await this.mysqlService.execute(getWarIDsQuery);
+    
+            if (warIDs.length === 0) return;
+    
+            for (const war of warIDs) {
+                try {
+                    const getWar = await this.client.rest.getCurrentWar(war.clanTag);
+    
+                    if (getWar.res.status === 403) {
+                        logger.info(`War log is private for clan: ${war.clanTag}`);
+                        failureCount++;
+                        continue;
+                    }
+    
+                    if (getWar.res.ok && getWar.body.state !== 'notInWar') {
+                        const warJSON = JSON.stringify(getWar.body).replace(/'/g, "''");
+    
+                        const getWarIdQuery = `SELECT id FROM warlogrecords WHERE startTime = ? AND endTime = ? AND opponentClanTag = ? AND clan_id = (SELECT id FROM clan WHERE clanTag = ?)`;
+                        const warIdResult = await this.mysqlService.execute(getWarIdQuery, [
+                            getWar.body.startTime, 
+                            getWar.body.endTime, 
+                            getWar.body.opponent.tag.replace('#', ''),
+                            war.clanTag.replace('#', '')
+                        ]);
+    
+                        if (warIdResult.length === 0) {
+                            sqlQuery = `SELECT majorLeagueInfo, minorLeagueInfo FROM leagueinfo WHERE clan_id = (SELECT id FROM clan WHERE clanTag = ?)`;
+                            let opponentLeagueDuringWar = await this.mysqlService.execute(sqlQuery, [getWar.body.opponent.tag.replace('#', '')]);
+    
+                            if (opponentLeagueDuringWar.length === 0) {
+                                opponentLeagueDuringWar = "NONE";
+                            } else {
+                                opponentLeagueDuringWar = opponentLeagueDuringWar[0].majorLeagueInfo + ' ' + opponentLeagueDuringWar[0].minorLeagueInfo;
+                            }
+    
+                            sqlQuery = `INSERT INTO warlogrecords (clan_id, startTime, endTime, opponentClanTag, oppoentClanName, opponentLeagueDuringWar, clanStars, opponentStars, trackedState, added_on, warLogJSON) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?)`;
+                            var result = await this.mysqlService.execute(sqlQuery, [
+                                war.id,
+                                getWar.body.startTime, 
+                                getWar.body.endTime, 
+                                getWar.body.opponent.tag.replace('#', ''), 
+                                getWar.body.opponent.name, 
+                                opponentLeagueDuringWar, 
+                                getWar.body.clan.stars, 
+                                getWar.body.opponent.stars, 
+                                getWar.body.state,
+                                warJSON
+                            ]);
+                            if(result.affectedRows > 0) {
+                                successCount++;
+                            }
+                            logger.info(`Inserted new war record for clan: ${getWar.body.clan.name} (${getWar.body.clan.tag})`);
+                        }else{
+                            alreadyExistsCount++;
+                            sqlQuery = `UPDATE warlogrecords SET warLogJSON = ?, clanStars = ?, opponentStars = ?, trackedState = ? WHERE id = ?`;
+                            var result = await this.mysqlService.execute(sqlQuery, [warJSON, getWar.body.clan.stars, getWar.body.opponent.stars, getWar.body.state, warIdResult[0].id]);
+                            if(result.affectedRows > 0) {
+                                successCount++;
+                            }
+                        }
+                    }
+                } catch (error) {
+                    logger.error(`Error processing clan ${war.clanTag}:`, error);
+                    failureCount++;
+                }   
+            }
+            logger.info(`Inserted ${successCount} new war records, ${alreadyExistsCount} already exists, ${failureCount} failed.`);
+        } catch (error) {
+            logger.error('Error ensuring war objects:' + error);
+            console.log('Error:', error);
         }
     }
 
@@ -209,9 +294,10 @@ class ClashAutomated {
     
                 if (clansToAdd.length > 0) {
                     await this.ensureClanObjects(clansToAdd);
+                    await this.ensureWarObjects(clansToAdd);
     
-                    // Add new clans to sync
                     this.client.addClans(clansToAdd);
+                    this.client.addWars(clansToAdd);
                     clansToAdd.forEach(tag => this.syncedClans.add(tag));
                     logger.info(`Added new clans to sync: ${clansToAdd.join(', ')}`);
                 }
@@ -232,12 +318,51 @@ class ClashAutomated {
     }
 
     handleError(error) {
-        logger.error('Clash of Clans API error:', error);
-        console.log('Error:', error);
+        logger.error('Clash of Clans API error:' + error);
     }
 
     handleNewSeasonStart() {
         logger.info('New season started');
+    }
+
+    registerWarEvents() {
+        this.client.setWarEvent({ name: 'warEnd', filter: (oldWar, newWar) => oldWar.state === 'inWar' && newWar.state === 'warEnded' });
+        this.client.setWarEvent({ name: 'warBegin', filter: (oldWar, newWar) => oldWar.state === 'preparation' && newWar.state === 'inWar' });
+        this.client.setWarEvent({ name: 'newWar', filter: (oldWar, newWar) => !oldWar && newWar.state === 'preparation' });
+        this.client.setWarEvent({ name: 'newWarJustStarted', filter: (oldWar, newWar) => oldWar.state === 'warEnded' && newWar.state === 'preparation' });
+        this.client.setWarEvent({
+            name: 'warClanChange',
+            filter: (oldWar, newWar) => oldWar && newWar && oldWar.opponent && newWar.opponent && oldWar.opponent.tag !== newWar.opponent.tag
+        });
+        this.client.setWarEvent({
+            name: 'warClanStarsChange',
+            filter: (oldWar, newWar) => oldWar && newWar && oldWar.clan && newWar.clan && oldWar.clan.stars !== newWar.clan.stars
+        });
+        this.client.setWarEvent({
+            name: 'warOpponentStarsChange',
+            filter: (oldWar, newWar) => oldWar && newWar && oldWar.opponent && newWar.opponent && oldWar.opponent.stars !== newWar.opponent.stars
+        });
+        this.client.setWarEvent({
+            name: 'warAttacksChange',
+            filter: (oldWar, newWar) => {
+                // Check for clan attacks change
+                const clanAttacksChanged = oldWar && newWar && oldWar.clan && newWar.clan && oldWar.clan.attacks !== newWar.clan.attacks;
+                // Check for opponent attacks change
+                const opponentAttacksChanged = oldWar && newWar && oldWar.opponent && newWar.opponent && oldWar.opponent.attacks !== newWar.opponent.attacks;
+                
+                return clanAttacksChanged || opponentAttacksChanged;
+            }
+        });
+        
+
+        this.client.on('warEnd', (oldWar, newWar) => this.logWarEvent('warEnd', oldWar, newWar, 'War ended'));
+        this.client.on('warBegin', (oldWar, newWar) => this.logWarEvent('warBegin', oldWar, newWar, 'War day started'));
+        this.client.on('newWar', (oldWar, newWar) => this.logWarEvent('newWar', oldWar, newWar, 'New war started'));
+        this.client.on('newWarJustStarted', (oldWar, newWar) => this.logWarEvent('newWarJustStarted', oldWar, newWar, 'New war just started'));
+        this.client.on('warClanChange', (oldWar, newWar) => this.logWarEvent('warClanChange', oldWar, newWar, 'Opponent clan changed'));
+        this.client.on('warClanStarsChange', (oldWar, newWar) => this.logWarEvent('warClanStarsChange', oldWar, newWar, 'Clan stars changed'));
+        this.client.on('warOpponentStarsChange', (oldWar, newWar) => this.logWarEvent('warOpponentStarsChange', oldWar, newWar, 'Opponent stars changed'));
+        this.client.on('warAttacksChange', (oldWar, newWar) => this.logWarEvent('warAttacksChange', oldWar, newWar, 'Clan attacks changed'));
     }
 
     registerPlayerEvents() {
@@ -294,9 +419,13 @@ class ClashAutomated {
         this.client.on('playerNameChange', (oldPlayer, newPlayer) => 
             this.logPlayerEvent('playerNameChange', oldPlayer, newPlayer, `Name changed from ${oldPlayer.name} to ${newPlayer.name}`)
         );
-        this.client.on('playerRoleChange', (oldPlayer, newPlayer) => 
-            this.logPlayerEvent('playerRoleChange', oldPlayer, newPlayer, `Role changed from ${oldPlayer.role} to ${newPlayer.role}`)
-        );
+        this.client.on('playerRoleChange', (oldPlayer, newPlayer) => {
+            const message = newPlayer.role === null
+                ? `Player left the clan. Previous role was ${oldPlayer.role}`
+                : `Role changed from ${oldPlayer.role} to ${newPlayer.role}`;
+            this.logPlayerEvent('playerRoleChange', oldPlayer, newPlayer, message);
+        });
+
         this.client.on('playerClanChange', (oldPlayer, newPlayer) => {
             // If the player left the clan
             if (oldPlayer.clan && !newPlayer.clan) {
@@ -338,9 +467,6 @@ class ClashAutomated {
         );
         this.client.on('playerLeftClan', (oldPlayer, newPlayer) => 
             this.logPlayerEvent('playerLeftClan', oldPlayer, newPlayer, `Left clan ${oldPlayer.clan.tag}`)
-        );
-        this.client.on('playerRoleChange', (oldPlayer, newPlayer) =>
-            this.logPlayerEvent('playerRoleChange', oldPlayer, newPlayer, `Role changed from ${oldPlayer.role} to ${newPlayer.role}`)
         );
 
     }
@@ -413,12 +539,21 @@ class ClashAutomated {
         for (const oldMember of oldClan.members) {
             const newMember = newClanMap.get(oldMember.tag);
             if (newMember && oldMember.role !== newMember.role) {
-                this.logClanEvent(
-                    'clanMemberRoleChange',
-                    oldClan,
-                    newClan,
-                    `${oldMember.name} (${oldMember.tag}) role changed from ${oldMember.role} to ${newMember.role}`
-                );
+                if (newMember.role === null) {
+                    this.logClanEvent(
+                        'clanMemberRoleChange',
+                        oldClan,
+                        newClan,
+                        `Member ${oldMember.name} (${oldMember.tag}) left the clan`
+                    );
+                } else {
+                    this.logClanEvent(
+                        'clanMemberRoleChange',
+                        oldClan,
+                        newClan,
+                        `${oldMember.name} (${oldMember.tag}) role changed from ${oldMember.role} to ${newMember.role}`
+                    );
+                }
             }
         }
     }    
@@ -520,6 +655,108 @@ class ClashAutomated {
             logger.error(`Failed to update playerJSON for player: ${newPlayer.name} (${newPlayer.tag}):`, error);
         }
         logger.info(`Logged event: ${eventType} for player: ${newPlayer.name}`);
+    }
+
+    async logWarEvent(eventType, oldWar, newWar, message) {
+        const warJSON = JSON.stringify(newWar).replace(/'/g, "''");
+        try {
+            if(eventType === 'warEnd'){
+                const updateQuery = `
+                    UPDATE warlogrecords 
+                    SET warLogJSON = ?, clanStars = ?, opponentStars = ?, trackedState = ? 
+                    WHERE clan_id = (SELECT id FROM clan WHERE clanTag = ? LIMIT 1) AND endTime = ?
+                `;
+                await this.mysqlService.execute(updateQuery, [warJSON, newWar.clan.stars, newWar.opponent.stars, newWar.state, newWar.clan.tag, newWar.endTime]);
+
+                const clanTag = newWar.clan.tag.replace('#', '');
+                const opponentTag = newWar.opponent.tag.replace('#', '');
+                for (members in newWar.clan.members) {
+                    var auditMessage = '';
+                    if (members.attacks.length > 0) {
+                        for (attack in members.attacks) {
+                            if (attack.length > 0) {
+                                const playerTag = members.tag.replace('#', '');
+                                const opponentTag = attack.defenderTag.replace('#', '');
+                                const stars = attack.stars;
+                                const destructionPercentage = attack.destructionPercentage;
+                                const mapPosition = attack.mapPosition;
+                                auditMessage = `Player ${playerTag} attacked ${opponentTag} and got ${stars} stars with ${destructionPercentage}% destruction in war against ${opponentTag} at map position ${mapPosition}`;
+                                console.log(auditMessage);
+                                this.auditLogger.addPlayerAuditLog(playerTag, auditMessage, 'playerAttacked', members);
+                            }
+                        }
+                    }
+                    if (members.bestOpponentAttack.length > 0) {
+                        for (bestOpponentAttack in members.bestOpponentAttack) {
+                            if (bestOpponentAttack.length > 0) {
+                                const playerTag = members.tag.replace('#', '');
+                                const opponentTag = bestOpponentAttack.attackerTag.replace('#', '');
+                                const stars = bestOpponentAttack.stars;
+                                const destructionPercentage = bestOpponentAttack.destructionPercentage;
+                                const mapPosition = bestOpponentAttack.mapPosition;
+                                auditMessage = `Player ${playerTag} was attacked by ${opponentTag} and got ${stars} stars with ${destructionPercentage}% destruction in war against ${opponentTag} at map position ${mapPosition}`;
+                                console.log(auditMessage);
+                                this.auditLogger.addPlayerAuditLog(playerTag, auditMessage, 's', members);
+                            }
+                        }
+                    }
+                }
+            }
+            else if(eventType === 'newWar' || eventType === 'newWarJustStarted' || eventType === 'warClanChange'){
+                if (newWar.state === 'notInWar') {
+                    return;
+                }
+                const getWarIdQuery = `SELECT id FROM warlogrecords WHERE startTime = ? AND endTime = ? AND opponentClanTag = ? AND clan_id = (SELECT id FROM clan WHERE clanTag = ?)`;
+                const warIdResult = await this.mysqlService.execute(getWarIdQuery, [
+                    newWar.startTime, 
+                    newWar.endTime, 
+                    newWar.opponent.tag.replace('#', ''),
+                    newWar.clan.tag.replace('#', '')
+                ]);
+
+                if (warIdResult.length === 0) {
+                    sqlQuery = `SELECT majorLeagueInfo, minorLeagueInfo FROM leagueinfo WHERE clan_id = (SELECT id FROM clan WHERE clanTag = ?)`;
+                    let opponentLeagueDuringWar = await this.mysqlService.execute(sqlQuery, [newWar.opponent.tag.replace('#', '')]);
+
+                    if (opponentLeagueDuringWar.length === 0) {
+                        opponentLeagueDuringWar = "NONE";
+                    } else {
+                        opponentLeagueDuringWar = opponentLeagueDuringWar[0].majorLeagueInfo + ' ' + opponentLeagueDuringWar[0].minorLeagueInfo;
+                    }
+
+                    sqlQuery = `INSERT INTO warlogrecords (clan_id, startTime, endTime, opponentClanTag, oppoentClanName, opponentLeagueDuringWar, clanStars, opponentStars, trackedState, added_on, warLogJSON) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?)`;
+                    var result = await this.mysqlService.execute(sqlQuery, [
+                        newWar.clan.id,
+                        newWar.startTime, 
+                        newWar.endTime, 
+                        newWar.opponent.tag.replace('#', ''), 
+                        newWar.opponent.name, 
+                        opponentLeagueDuringWar, 
+                        newWar.clan.stars, 
+                        newWar.opponent.stars, 
+                        newWar.state,
+                        warJSON
+                    ]);
+                    if(result.affectedRows > 0) {
+                        logger.info(`Inserted new war record for clan: ${newWar.clan.name} (${newWar.clan.tag})`);
+                    }
+                }
+            }
+            const updateQuery = `
+                UPDATE warlogrecords 
+                SET warLogJSON = ?, clanStars = ?, opponentStars = ?, trackedState = ? 
+                WHERE clan_id = (SELECT id FROM clan WHERE clanTag = ? LIMIT 1) AND endTime = ?
+            `;
+            await this.mysqlService.execute(updateQuery, [warJSON, newWar.clan.stars, newWar.opponent.stars, newWar.state, newWar.clan.tag.replace('#', ''), ""+newWar.endTime+""]);
+            
+
+        } catch (error) {
+            logger.error(`Failed to update warJSON for clan: ${newWar.clan.name} (${newWar.clan.tag}):`, error);
+        }
+        if(eventType === 'warEnd'){
+            logger.info(`Logged event: ${eventType} for clan: ${newWar.clan.name} and updated attack logs`);
+        }
+        //logger.info(`Logged event: ${eventType} for clan: ${newWar.clan.name}`);
     }
 }
 

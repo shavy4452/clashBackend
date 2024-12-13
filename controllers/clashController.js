@@ -723,7 +723,7 @@ class ClashController {
             }
     
             const checkTag = tag.startsWith('#') ? tag : `#${tag}`;
-            const isValid = await clashService.isPlayerTagValid(checkTag);
+            const isValid = await clashService.isPlayerTagValid(checkTag.toUpperCase());
             if (!isValid) {
                 return res.status(200).json({ success: false, message: 'Invalid player tag' });
             }

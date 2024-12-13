@@ -89,14 +89,11 @@ class Logger {
    * Logs an error message.
    * @param {string | Error} error - Error message or object.
    */
-  error(error) {
-    console.log(error);
+  error(error, ...optionalParams){
     if (error instanceof Error) {
-      // Log the stack trace if it's an Error object
-      this.logger.error(error.stack || error.message);
+      this.logger.error(error.message, { stack: error.stack });
     } else {
-      // Otherwise, log the error message directly
-      this.logger.error(error);
+      this.logger.error(error, ...optionalParams);
     }
   }
 
