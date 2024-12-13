@@ -1182,6 +1182,29 @@
           }
         }
       },
+      "/getTrackedClanWars/{tag}": {
+        "post": {
+          "tags": ["War Endpoints"],
+          "summary": "Get tracked clan wars",
+          "parameters": [
+            {
+              "name": "tag",
+              "in": "path",
+              "required": true,
+              "description": "The tag of the clan",
+              "schema": {
+                "type": "string"
+              }
+            }
+          ],
+          "security": [{ "ApiKeyAuth": [] }],
+          "responses": {
+            "200": {
+              "description": "Tracked clan wars retrieved successfully"
+            }
+          }
+        }
+      },
       "/clanMembersHistory/{tag}": {
         "post": {
           "tags": ["Clan Endpoints"],
@@ -1222,6 +1245,7 @@
         }
       }
     },
+    
     "components": {
       "securitySchemes": {
         "ApiKeyAuth": {

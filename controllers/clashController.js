@@ -38,7 +38,7 @@ class ClashController {
             return res.status(200).json({ success: true, data: data });
         } catch (error) {
             logger.error('Failed to get clans by league:' +  error);
-            return res.status(500).json({ success: false, message: 'Failed to get clans by league' });
+            return res.status(200).json({ success: false, message: 'Failed to get clans by league' });
         }
     }
 
@@ -87,8 +87,40 @@ class ClashController {
 
         } catch (error) {
             logger.error('Failed to get player status:', error);
-            return res.status(500).json({ success: false, message: 'Failed to get player status' });
+            return res.status(200).json({ success: false, message: 'Failed to get player status' });
         }
+    }
+
+    static async getTrackedClanWars(req, res) {
+        try {
+            const { tag } = req.params;
+            if (!tag) {
+                return res.status(200).json({ success: false, message: 'Clan Tag is required' });
+            }
+
+            const checkTag = tag.startsWith('#') ? tag : `#${tag}`;
+            const isValid = await clashService.isClanTagValid(checkTag);
+
+            if (!isValid) {
+                return res.status(200).json({ success: false, message: 'Invalid clan tag' });
+            }
+
+            let decodedTag = decodeURIComponent(tag).startsWith('#') ? tag.substring(1) : tag;
+            decodedTag = decodedTag.toUpperCase();
+
+            let sqlQuery = 'SELECT * FROM warlogrecords WHERE clan_id = (SELECT id FROM clan WHERE clanTag = ?) ORDER BY added_on DESC';
+            let result = await db.execute(sqlQuery, [decodedTag]);
+
+            if (result.length === 0) {
+                return res.status(200).json({ success: false, message: 'No tracked wars found' });
+            }
+
+            return res.status(200).json({ success: true, data: result });
+            
+        } catch (error) {
+            logger.error('Failed to get tracked wars:', error);
+            return res.status(200).json({ success: false, message: 'Failed to get tracked wars' });
+        }   
     }
 
     static async addPlayerNotes(req, res) {
@@ -436,7 +468,7 @@ class ClashController {
             }
             logger.error('Failed to get clan rankings from location:', error);
             console.log('Failed to get clan rankings from location:', error);
-            return res.status(500).json({ success: false, message: 'Failed to get clan rankings from location' });
+            return res.status(200).json({ success: false, message: 'Failed to get clan rankings from location' });
         }
     }
 
@@ -453,7 +485,7 @@ class ClashController {
             }
             logger.error('Failed to get locations:', error);
             console.log('Failed to get locations:', error);
-            return res.status(500).json({ success: false, message: 'Failed to get locations' });
+            return res.status(200).json({ success: false, message: 'Failed to get locations' });
         }
     }
 
@@ -473,7 +505,7 @@ class ClashController {
             }
             logger.error('Failed to get player rankings from location:', error);
             console.log('Failed to get player rankings from location:', error);
-            return res.status(500).json({ success: false, message: 'Failed to get player rankings from location' });
+            return res.status(200).json({ success: false, message: 'Failed to get player rankings from location' });
         }
     }
 
@@ -625,7 +657,7 @@ class ClashController {
             // Log and return generic error
             logger.error('Failed to get clash data:', error);
             console.error('Failed to get clash data:', error);
-            return res.status(500).json({ success: false, message: 'Failed to get clash data' });
+            return res.status(200).json({ success: false, message: 'Failed to get clash data' });
         }
     }
     
@@ -656,7 +688,7 @@ class ClashController {
                 return res.status(200).json({ success: false, message: 'Clan war log is private.' });
             }
             logger.error('Failed to get war weight:', error);
-            return res.status(500).json({ success: false, message: 'Failed to get war weight' });
+            return res.status(200).json({ success: false, message: 'Failed to get war weight' });
         }
     }
     
@@ -685,7 +717,7 @@ class ClashController {
                 return res.status(200).json({ success: false, message: 'Clan war log is private.' });
             }
             logger.error('Failed to get clash members:', error);
-            return res.status(500).json({ success: false, message: 'Failed to get clash members' });
+            return res.status(200).json({ success: false, message: 'Failed to get clash members' });
         }
     }
 
@@ -711,7 +743,7 @@ class ClashController {
                 return res.status(200).json({ success: false, message: 'API is currently in maintenance, please come back later' });
             }
             logger.error('Failed to get clash members:', error);
-            return res.status(500).json({ success: false, message: 'Failed to get clash members' });
+            return res.status(200).json({ success: false, message: 'Failed to get clash members' });
         }
     }
 
@@ -792,7 +824,7 @@ class ClashController {
     
             logger.error('Failed to get Player Info:', error);
             console.log('Failed to get Player Info:', error);
-            return res.status(500).json({ success: false, message: 'Failed to get Player Info' });
+            return res.status(200).json({ success: false, message: 'Failed to get Player Info' });
         }
     }
     
@@ -827,7 +859,7 @@ class ClashController {
                 return res.status(200).json({ success: false, message: 'Clan war log is private.' });
             }
             logger.error('Failed to get current war:' + error.reason);
-            return res.status(500).json({ success: false, message: 'Failed to get current war' });
+            return res.status(200).json({ success: false, message: 'Failed to get current war' });
         }
     }
     
@@ -863,7 +895,7 @@ class ClashController {
                 return res.status(200).json({ success: false, message: 'Access denied, clan war log is private.'});
             }
             logger.error('Failed to get capital raid seasons:', error);
-            return res.status(500).json({ success: false, message: 'Failed to get capital raid seasons' });
+            return res.status(200).json({ success: false, message: 'Failed to get capital raid seasons' });
         }
     }
 
@@ -894,7 +926,7 @@ class ClashController {
                 return res.status(200).json({ success: false, message: 'Clan war log not found.' });
             }
             console.log('Failed to get clan war log:', error);
-            return res.status(500).json({ success: false, message: 'Failed to get clan war log' });
+            return res.status(200).json({ success: false, message: 'Failed to get clan war log' });
         }
     }
 
@@ -921,7 +953,7 @@ class ClashController {
             }
             console.log('Failed to get TH levels:', error);
             logger.error('Failed to get TH levels:', error);
-            return res.status(500).json({ success: false, message: 'Failed to get TH levels' });
+            return res.status(200).json({ success: false, message: 'Failed to get TH levels' });
         }
     }
 
@@ -948,7 +980,7 @@ class ClashController {
                 return res.status(200).json({ success: false, message: 'Clan is not in CWL' });
             }
             logger.error('Failed to get CWL results:', error);
-            return res.status(500).json({ success: false, message: 'Failed to get CWL results' });
+            return res.status(200).json({ success: false, message: 'Failed to get CWL results' });
         }
     }
 }

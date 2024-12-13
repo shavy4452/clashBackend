@@ -65,6 +65,12 @@ class ApiRoutes {
       //,  this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
       , ClashController.getPlayersHistory);
 
+    this.router.post('/getTrackedClanWars/:tag'
+      , authenticate
+      , rateLimitMiddleware
+      //,  this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
+      , ClashController.getTrackedClanWars);
+
     this.router.post('/getCurrentWar/:tag'
       , authenticate
       , rateLimitMiddleware
