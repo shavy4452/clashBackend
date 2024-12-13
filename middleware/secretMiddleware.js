@@ -20,14 +20,14 @@ const secret = (req, res, next) => {
         }
 
         try{
-            jwt.verify(auth, config.jwt_secret);
+            const data = jwt.verify(auth, config.jwt_secret);
+            req.user_name = data.user_email.split('@')[0];
         }catch(err){
             if(err.name === 'TokenExpiredError') {
                 return res.status(401).json({ message: 'Token has expired' });
             }
             return res.status(401).json({ message: 'Invalid secret' });
         }
-        
     }catch(err){
         return res.status(401).json({ message: 'Invalid secret' });
     }

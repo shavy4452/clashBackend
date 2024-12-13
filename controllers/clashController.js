@@ -125,14 +125,18 @@ class ClashController {
 
     static async addPlayerNotes(req, res) {
         const { tag } = req.params;
-        const { note_type, note_detail, note_added_by } = req.body;
+        const { note_type, note_detail } = req.body;
+        var { note_added_by } = req.user_name;
 
         const requiredFields = [
             { value: tag, message: 'Player tag is required' },
             { value: note_type, message: 'Note type is required' },
             { value: note_detail, message: 'Note detail is required' },
-            { value: note_added_by, message: 'Note added by is required' },
         ];
+
+        if (!note_added_by){
+            note_added_by = 'SYSTEM';
+        }
         
         for (const field of requiredFields) {
             if (!field.value) {
@@ -162,7 +166,7 @@ class ClashController {
             if (result.length === 0) {
                 return res.status(200).json({ success: false, message: 'Player not found in database' });
             }
-
+            
             sqlQuery = 'INSERT INTO playernotes (player_id, note_type, note_detail, note_added_by, note_added_on, is_note_active) VALUES (?, ?, ?, ?, ?, ?)';
             var note_id = await db.execute(sqlQuery, [result[0].id, note_type, note_detail, note_added_by, new Date(), 1]);
 
@@ -250,15 +254,19 @@ class ClashController {
 
             let leagueData = await db.execute(sqlQuery, [result[0].id]);
             var updateMessage = '';
+            var { user } = req.user_name;
+            if (!user){
+                user = 'SYSTEM';
+            }
 
             if (leagueData.length === 0){
                 sqlQuery = 'INSERT INTO leagueinfo (clan_id, majorLeagueInfo, minorLeagueInfo, publicNote, internalNote, last_updated) VALUES (?, ?, ?, ?, ?, ?)';
-                updateMessage = `System added the clan's association details with Major League: ${majorLeague}, Minor League: ${minorLeague}, Public Note: ${publicNoteText}, Internal Note: ${internalNoteText}`;
+                updateMessage = `${user} added the clan's association details with Major League: ${majorLeague}, Minor League: ${minorLeague}, Public Note: ${publicNoteText}, Internal Note: ${internalNoteText}`;
                 await db.execute(sqlQuery, [result[0].id, majorLeague, minorLeague, publicNoteText, internalNoteText, new Date()]);
             }
             else{
                 sqlQuery = 'UPDATE leagueinfo SET majorLeagueInfo = ?, minorLeagueInfo = ?, publicNote = ?, internalNote = ?, last_updated = ? WHERE clan_id = ?';
-                updateMessage = `System changed the clan's association details from Major League: ${leagueData[0].majorLeagueInfo}, Minor League: ${leagueData[0].minorLeagueInfo}, Public Note: ${leagueData[0].publicNote}, Internal Note: ${leagueData[0].internalNote} to Major League: ${majorLeague}, Minor League: ${minorLeague}, Public Note: ${publicNoteText}, Internal Note: ${internalNoteText}`;
+                updateMessage = `${user} changed the clan's association details from Major League: ${leagueData[0].majorLeagueInfo}, Minor League: ${leagueData[0].minorLeagueInfo}, Public Note: ${leagueData[0].publicNote}, Internal Note: ${leagueData[0].internalNote} to Major League: ${majorLeague}, Minor League: ${minorLeague}, Public Note: ${publicNoteText}, Internal Note: ${internalNoteText}`;
                 await db.execute(sqlQuery, [majorLeague, minorLeague, publicNoteText, internalNoteText, new Date(), result[0].id]);
             }
 
