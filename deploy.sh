@@ -66,7 +66,8 @@ const config = {
         keyname: "dev backend"
     },
     jwt_secret: "kbvgedcyxuhjvgushdxhsfxdyguydsgxbuywgsyugbwquiu09w7878yhhyugduhudhytgysgysgftyfg",   
-    webhook: "https://discord.com/api/webhooks/1193276775506116609/yO4ed16TkJPVdTvpFxj7zJfvmGFpsOPPo4n9QoJ8g_qtXsf7vf4m_vavWcy9cjWYBSgd"
+    webhook: "https://discord.com/api/webhooks/1193276775506116609/yO4ed16TkJPVdTvpFxj7zJfvmGFpsOPPo4n9QoJ8g_qtXsf7vf4m_vavWcy9cjWYBSgd",
+    bandCreds: "mongodb+srv://Delta:Shavy4452@cluster0.xr04j.mongodb.net/Band?retryWrites=true&w=majority&ssl=true",
 };
 
 module.exports = config;
