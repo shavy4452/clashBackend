@@ -8,6 +8,7 @@ const logger = require('./utils/logger.js');
 const clashService = require('./services/clashService');
 const ApiRoutes = require('./routes/apiRoutes');
 const clashAutomation = require('./tasks/clashAutomated');
+const BandAPISyncing = require('./tasks/bandAutomated');
 
 class Server {
   constructor() {
@@ -90,7 +91,10 @@ class Server {
   
   async runAutomationTasks() {
     try{
-      await clashAutomation.syncClashData();
+      await Promise.all([
+        clashAutomation.syncClashData(),
+        new BandAPISyncing().startPolling()
+    ]);
     }catch(error){
       console.log('error:', error);
       logger.error('Failed to run automation tasks:', error);

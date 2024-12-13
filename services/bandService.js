@@ -8,6 +8,7 @@ class BandService {
         this.baseURL = "https://api-sg.band.us";
         this.messageAPI = "/v1/chat/send_message?client_info=%7B%22language%22%3A%22en%22%2C%22country%22%3A%22IN%22%2C%22version%22%3A1%2C%22agent_type%22%3A%22web%22%2C%22agent_version%22%3A%223.3.1%22%2C%22resolution_type%22%3A4%7D&language=en&country=IN&version=1&akey=bbc59b0b5f7a1c6efe950f6236ccda35&DEVICE-TIME-ZONE-ID=Asia%2FKolkata&DEVICE-TIME-ZONE-MS-OFFSET=19800000";
         this.writePost = "/v2.0.1/create_post?client_info=%7B%22language%22%3A%22en%22%2C%22country%22%3A%22IN%22%2C%22version%22%3A1%2C%22agent_type%22%3A%22web%22%2C%22agent_version%22%3A%223.3.1%22%2C%22resolution_type%22%3A4%7D&language=en&country=IN&version=1&akey=bbc59b0b5f7a1c6efe950f6236ccda35&DEVICE-TIME-ZONE-ID=Asia%2FKolkata&DEVICE-TIME-ZONE-MS-OFFSET=19800000"
+        this.get_band_members = "/v1.3.0/get_members_of_band?client_info=%7B%22language%22%3A%22en%22%2C%22country%22%3A%22IN%22%2C%22version%22%3A1%2C%22agent_type%22%3A%22web%22%2C%22agent_version%22%3A%223.3.1%22%2C%22resolution_type%22%3A4%7D&language=en&country=IN&version=1&akey=bbc59b0b5f7a1c6efe950f6236ccda35&DEVICE-TIME-ZONE-ID=Asia%2FKolkata&DEVICE-TIME-ZONE-MS-OFFSET=19800000"
     }
 
     md(URL, requestKey) {
@@ -71,9 +72,10 @@ class BandService {
          * @param {string} bandNo The band number for which the post is to be created.
          * @param {object} headers The headers to use for the request.
          * @param {string} requestkey The request key to use for the request.
+         * @param {boolean} is_notice Whether the post is a notice or not.
          * @returns {object|null} The JSON response or null if an error occurs.
         */
-    async createBandPost(content, photo, bandNo, headers, requestkey) {
+    async createBandPost(content, photo, bandNo, headers, requestkey, is_notice = false) {
         
         try {
             const timestamp = Math.round(Date.now() / 1000) * 1000;
@@ -85,7 +87,7 @@ class BandService {
             const data = new URLSearchParams({
                 'band_no': bandNo,
                 'content': content,
-                'set_band_notice': true,
+                'set_band_notice': is_notice,
                 'set_major_band_notice': false,
                 'set_linked_band_notice': '',
                 'should_disable_comments': '',
@@ -100,10 +102,40 @@ class BandService {
                 return { success: false, message: response.data.result_data.message };
             }
             console.log('response:', response.data);
+            // if status is 203, then temporary error occurred, retry the request
             return { success: true, data: response.data, message: "Band post created successfully" };
         }catch(error){
             console.error("Error occurred while creating band post:", error);
             return { success: false, message: "Failed to create band post" };
+        }
+    }
+
+    /*
+    * Get band members
+    * @param {string} bandNo The band number for which the members are to be fetched.
+    * @param {object} headers The headers to use for the request.
+    * @param {string} requestKey The request key to use for the request.
+    * @returns {object|null} The JSON response or null if an error occurs.
+    */
+    async getBandMembers(bandNo, headers, requestKey) {
+        try {
+            const timestamp = Math.round(Date.now() / 1000) * 1000;
+            const url = `${this.get_band_members}&band_no=${bandNo}`;
+            const md = this.md(url, requestKey).md;
+            headers['md'] = md;
+
+            const response = await axios.get(`${this.baseURL}${url}&ts=${timestamp}`, { headers });
+            const data = response.data;
+
+            if (data.result_data?.message === "You are not authorized.") {
+                console.error("Authorization error while getting band members:", data.result_data.message);
+                return { success: false, message: data.result_data.message };
+            }
+
+            return { success: true, data };
+        } catch (error) {
+            console.error("Error occurred while getting band members:", error);
+            return { success: false, message: "Failed to get band members" };
         }
     }
 }

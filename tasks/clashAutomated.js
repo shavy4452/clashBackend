@@ -176,7 +176,7 @@ class ClashAutomated {
             logger.info(`Inserted ${successCount} new war records, ${alreadyExistsCount} already exists, ${failureCount} failed.`);
         } catch (error) {
             logger.error('Error ensuring war objects:' + error);
-            console.log('Error:', error);
+            console.log('Error T:', error);
         }
     }
 

@@ -81,8 +81,8 @@ class Logger {
    * Logs an informational message.
    * @param {string} message - Log message.
    */
-  info(message) {
-    this.logger.info(message);
+  info(message, ...optionalParams) {
+    this.logger.info(message, ...optionalParams);
   }
 
   /**
@@ -101,16 +101,16 @@ class Logger {
    * Logs a warning message.
    * @param {string} message - Log message.
    */
-  warn(message) {
-    this.logger.warn(message);
+  warn(message, ...optionalParams) {
+    this.logger.warn(message, ...optionalParams);
   }
 
   /**
    * Logs a debug message.
    * @param {string} message - Log message.
    */
-  debug(message) {
-    this.logger.debug(message);
+  debug(message, ...optionalParams) {
+    this.logger.debug(message, ...optionalParams);
   }
 }
 
