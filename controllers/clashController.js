@@ -108,13 +108,55 @@ class ClashController {
             let decodedTag = decodeURIComponent(tag).startsWith('#') ? tag.substring(1) : tag;
             decodedTag = decodedTag.toUpperCase();
 
-            let sqlQuery = 'SELECT * FROM warlogrecords WHERE clan_id = (SELECT id FROM clan WHERE clanTag = ?) ORDER BY added_on DESC';
+            let sqlQuery = `SELECT 
+            wl.id, 
+            wl.clan_id, 
+            wl.startTime, 
+            wl.endTime, 
+            wl.opponentClanTag, 
+            wl.oppoentClanName, 
+            wl.opponentLeagueDuringWar, 
+            wl.clanStars, 
+            wl.opponentStars, 
+            wl.trackedState, 
+            wl.added_on,
+            li.majorLeagueInfo,
+            li.minorLeagueInfo,
+            JSON_EXTRACT(wl.warLogJSON, '$.clan.attacks') AS clanAttacks,
+            JSON_EXTRACT(wl.warLogJSON, '$.clan.stars') AS clanStars,
+            JSON_EXTRACT(wl.warLogJSON, '$.clan.destructionPercentage') AS clanDestructionPercentage,
+            JSON_EXTRACT(wl.warLogJSON, '$.opponent.attacks') AS opponentAttacks,
+            JSON_EXTRACT(wl.warLogJSON, '$.opponent.stars') AS opponentStars,
+            JSON_EXTRACT(wl.warLogJSON, '$.opponent.destructionPercentage') AS opponentDestructionPercentage,
+            CASE 
+                WHEN wl.trackedState = 'warEnded' THEN 
+                    CASE 
+                        -- Compare stars first
+                        WHEN JSON_EXTRACT(wl.warLogJSON, '$.clan.stars') > JSON_EXTRACT(wl.warLogJSON, '$.opponent.stars') THEN 'Clan Wins'
+                        WHEN JSON_EXTRACT(wl.warLogJSON, '$.clan.stars') < JSON_EXTRACT(wl.warLogJSON, '$.opponent.stars') THEN 'Opponent Wins'
+                        -- If stars are equal, compare destruction percentage
+                        WHEN JSON_EXTRACT(wl.warLogJSON, '$.clan.destructionPercentage') > JSON_EXTRACT(wl.warLogJSON, '$.opponent.destructionPercentage') THEN 'Clan Wins'
+                        WHEN JSON_EXTRACT(wl.warLogJSON, '$.clan.destructionPercentage') < JSON_EXTRACT(wl.warLogJSON, '$.opponent.destructionPercentage') THEN 'Opponent Wins'
+                        -- If destruction percentage is also equal, compare attacks
+                        WHEN JSON_EXTRACT(wl.warLogJSON, '$.clan.attacks') < JSON_EXTRACT(wl.warLogJSON, '$.opponent.attacks') THEN 'Clan Wins'
+                        WHEN JSON_EXTRACT(wl.warLogJSON, '$.clan.attacks') > JSON_EXTRACT(wl.warLogJSON, '$.opponent.attacks') THEN 'Opponent Wins'
+                        ELSE 'Draw'
+                    END
+                ELSE 'Ongoing'
+            END AS winner
+        FROM 
+            warlogrecords wl
+        LEFT JOIN 
+            leagueinfo li ON wl.clan_id = li.clan_id
+        WHERE 
+            wl.clan_id = (SELECT id FROM clan WHERE clanTag = ?)
+        ORDER BY 
+            wl.added_on DESC;`;
             let result = await db.execute(sqlQuery, [decodedTag]);
 
             if (result.length === 0) {
                 return res.status(200).json({ success: false, message: 'No tracked wars found' });
             }
-
             return res.status(200).json({ success: true, data: result });
             
         } catch (error) {
@@ -579,8 +621,6 @@ class ClashController {
             if (tag.startsWith('#')) {
                 tag = tag.substring(1);
             }
-    
-            // Check if the clan exists in the database
             const clanResult = await db.execute('SELECT * FROM clan WHERE clanTag = ?', [tag]);
     
             let clanId;
@@ -593,17 +633,21 @@ class ClashController {
     
             if (clanResult.length === 0) {
                 // Clan not found, insert it
-                const insertClanResult = await db.execute(
-                    'INSERT INTO clan (clanTag, isToBeSynced, firstseen, lastsynced) VALUES (?, ?, ?, ?)',
-                    [tag, 0, new Date(), new Date()]
-                );
-                clanId = insertClanResult.insertId;
-    
-                // Add an audit log
-                await db.execute(
-                    'INSERT INTO clanauditlogs (clan_id, detailedData, event_type, added_on) VALUES (?, ?, ?, ?)',
-                    [clanId, 'Clan added to database', 'ADD', new Date()]
-                );
+                if(clashService.isClanTagValid(tag)){
+                    const insertClanResult = await db.execute(
+                        'INSERT INTO clan (clanTag, isToBeSynced, firstseen, lastsynced) VALUES (?, ?, ?, ?)',
+                        [tag, 0, new Date(), new Date()]
+                    );
+                    clanId = insertClanResult.insertId;
+        
+                    // Add an audit log
+                    await db.execute(
+                        'INSERT INTO clanauditlogs (clan_id, detailedData, event_type, added_on) VALUES (?, ?, ?, ?)',
+                        [clanId, 'Clan added to database', 'ADD', new Date()]
+                    );
+                }else{
+                    return res.status(200).json({ success: false, message: 'Invalid clan tag' });
+                }
             } else {
                 // Clan found, fetch additional association info
                 clanId = clanResult[0].id;
@@ -919,8 +963,79 @@ class ClashController {
             if (!isValid) {
                 return res.status(200).json({ success: false, message: 'Invalid clan tag' });
             }
-
+            const getCurrentWarDetails = await clashService.getCurrentWar(tag.toUpperCase());
+            if(getCurrentWarDetails && getCurrentWarDetails.state !== 'warEnded') {
+                var currentWar = {};
+                currentWar.result = 'inProgress';
+                currentWar.endTime = getCurrentWarDetails.endTime;
+                currentWar.teamSize = getCurrentWarDetails.teamSize;
+                currentWar.attacksPerMember = getCurrentWarDetails.attacksPerMember;
+                currentWar.clan = getCurrentWarDetails.clan
+                delete currentWar.clan.members;
+                currentWar.opponent = getCurrentWarDetails.opponent;     
+                delete currentWar.opponent.members;           
+            }
             const data = await clashService.getClanWarLog(tag.toUpperCase());
+            if(typeof data !== 'string' && data.length > 0) {
+                if(currentWar) {
+                    data.unshift(currentWar);
+                }
+                const opponentTags = data.map(war => war.opponent.tag.replace('#', ''));
+                opponentTags.push(tag.toUpperCase().replace('#', ''));
+                if (opponentTags.length > 0) {
+                    const placeholders = opponentTags.map(() => '?').join(',');
+                    const query = `
+                        SELECT 
+                            c.clanTag, 
+                            c.id AS clanId,
+                            li.majorLeagueInfo,
+                            li.minorLeagueInfo,
+                            li.publicNote,
+                            li.internalNote
+                        FROM 
+                            clan c
+                        LEFT JOIN 
+                            leagueinfo li ON c.id = li.clan_id
+                        WHERE 
+                            c.clanTag IN (${placeholders});
+                    `;
+                    const results = await db.execute(query, opponentTags);
+
+                    const opponentMap = new Map();
+                    let leagueInfo = null;
+
+                    results.forEach(row => {
+                        if (row.clanTag) {
+                            opponentMap.set(row.clanTag, row);
+                        }
+                        if (row.clanTag === tag.toUpperCase().replace('#', '')) {
+                            leagueInfo = row;
+                        }
+                    });
+
+                    data.forEach(war => {
+                        const opponentTag = war.opponent.tag.replace('#', '');
+                        const opponent = opponentMap.get(opponentTag);
+                        war.opponent.leagueInfo = opponent
+                            ? {
+                                majorLeagueInfo: opponent.majorLeagueInfo || 'No League Association',
+                                minorLeagueInfo: opponent.minorLeagueInfo || 'No League Association',
+                                publicNote: opponent.publicNote || '',
+                                internalNote: opponent.internalNote || ''
+                            }
+                            : {
+                                majorLeagueInfo: 'No League Association',
+                                minorLeagueInfo: 'No League Association',
+                                publicNote: '',
+                                internalNote: ''
+                            };
+
+                        war.clan.leagueInfo = leagueInfo
+                        
+                    });
+                }
+            }
+
             return res.status(200).json({ success: true, data: data });
         } catch (error) {
             if (error.status === 503 && error.reason === 'inMaintenance') {
