@@ -346,11 +346,8 @@ class ClashAutomated {
         this.client.setWarEvent({
             name: 'warAttacksChange',
             filter: (oldWar, newWar) => {
-                // Check for clan attacks change
                 const clanAttacksChanged = oldWar && newWar && oldWar.clan && newWar.clan && oldWar.clan.attacks !== newWar.clan.attacks;
-                // Check for opponent attacks change
                 const opponentAttacksChanged = oldWar && newWar && oldWar.opponent && newWar.opponent && oldWar.opponent.attacks !== newWar.opponent.attacks;
-                
                 return clanAttacksChanged || opponentAttacksChanged;
             }
         });
@@ -662,11 +659,6 @@ class ClashAutomated {
         const warJSON = JSON.stringify(newWar).replace(/'/g, "''");
         try {
             if(eventType === 'warEnd'){
-                console.log('oldWar:', oldWar);
-                console.log('newWar:', newWar);
-                // save in a file
-                fs.writeFileSync('warEnd.json', JSON.stringify(newWar, null, 2));
-                fs.writeFileSync('warEndOld.json', JSON.stringify(oldWar, null, 2));
                 const updateQuery = `
                     UPDATE warlogrecords 
                     SET warLogJSON = ?, clanStars = ?, opponentStars = ?, trackedState = ? 
