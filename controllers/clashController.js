@@ -980,7 +980,9 @@ class ClashController {
                 if(currentWar) {
                     data.unshift(currentWar);
                 }
-                const opponentTags = data.map(war => war.opponent.tag.replace('#', ''));
+                const opponentTags = data
+                .map(war => (war.opponent?.tag ? war.opponent.tag.replace('#', '') : null))
+                .filter(tag => tag !== null);
                 opponentTags.push(tag.toUpperCase().replace('#', ''));
                 if (opponentTags.length > 0) {
                     const placeholders = opponentTags.map(() => '?').join(',');
@@ -1002,21 +1004,40 @@ class ClashController {
                     const results = await db.execute(query, opponentTags);
 
                     const opponentMap = new Map();
-                    let leagueInfo = null;
+                    var leagueInfo = null;
 
                     results.forEach(row => {
                         if (row.clanTag) {
                             opponentMap.set(row.clanTag, row);
                         }
-                        if (row.clanTag === tag.toUpperCase().replace('#', '')) {
-                            leagueInfo = row;
+
+                        if (row.clanTag == tag.toUpperCase().replace('#', '')) {
+                            leagueInfo = {
+                                majorLeagueInfo: row.majorLeagueInfo || 'No League Association',
+                                minorLeagueInfo: row.minorLeagueInfo || 'No League Association',
+                                publicNote: row.publicNote || '',
+                                internalNote: row.internalNote || ''
+                            };
                         }
+
+                        if(!leagueInfo) {
+                            leagueInfo = {
+                                majorLeagueInfo: 'No League Association',
+                                minorLeagueInfo: 'No League Association',
+                                publicNote: '',
+                                internalNote: ''
+                            };
+                        }
+                        
                     });
 
                     data.forEach(war => {
-                        const opponentTag = war.opponent.tag.replace('#', '');
-                        const opponent = opponentMap.get(opponentTag);
-                        war.opponent.leagueInfo = opponent
+                        const opponentTag = war.opponent?.tag 
+                            ? opponentTags.find(tag => tag === war.opponent.tag.replace('#', ''))
+                            : null;
+                        if(opponentTag) {
+                            const opponent = opponentMap.get(opponentTag);
+                            war.opponent.leagueInfo = opponent
                             ? {
                                 majorLeagueInfo: opponent.majorLeagueInfo || 'No League Association',
                                 minorLeagueInfo: opponent.minorLeagueInfo || 'No League Association',
@@ -1030,6 +1051,7 @@ class ClashController {
                                 internalNote: ''
                             };
 
+                        }
                         war.clan.leagueInfo = leagueInfo
                         
                     });
