@@ -22,7 +22,7 @@ class ApiRoutes {
 
   initializeRoutes() {
     this.router.get('/health', (req, res) => {
-      res.status(200).json({ message: 'API is running' });
+      ClashController.healthCheck(req, res);
     });
 
     this.router.post('/generateToken', (req, res) => {
@@ -205,6 +205,18 @@ class ApiRoutes {
       rateLimitMiddleware,
       // this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
       BandController.createSyncBandPost);
+
+    this.router.get('/getTrackedWar/:tag'
+      , authenticate
+      , rateLimitMiddleware
+      //,  this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
+      , ClashController.getTrackedWar);
+
+    this.router.get('/getClanOfALeague/:league'
+      , authenticate
+      , rateLimitMiddleware
+      //,  this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
+      , ClashController.getClanOfALeague);
 
   }
 

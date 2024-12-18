@@ -2,8 +2,75 @@ const clashService = require('../services/clashService');
 const logger = require('../utils/logger.js');
 const chalk = require('chalk');
 const db = require('../services/mysqldbService.js');
+const config = require('../config/config.js');
+const os = require('os');
+const { exec } = require('child_process');
 
 class ClashController {
+
+
+
+    static async healthCheck(req, res) {
+        var finalMessage = {};
+        try {
+            // Check database size
+            var sqlQuery = 'SELECT table_name AS `Table`, round(((data_length + index_length) / 1024 / 1024), 2) `Size in MB` FROM information_schema.TABLES WHERE table_schema = ?';
+            var result = await db.execute(sqlQuery, [config.db.database]);
+            var dbSize = 0;
+            for (var i = 0; i < result.length; i++) {
+                dbSize += parseFloat(result[i]['Size in MB']);
+            }
+            dbSize = dbSize / 1024;
+            dbSize = dbSize.toFixed(2);
+
+
+            finalMessage.dbSpace = dbSize + ' GB';
+
+            sqlQuery = `
+                SELECT 
+                    (SELECT COUNT(*) FROM player WHERE isToBeTracked = 1) AS playerCount,
+                    (SELECT COUNT(*) FROM clan WHERE isToBeSynced = 1) AS clanCount;
+            `;
+            result = await db.execute(sqlQuery);
+            finalMessage.playerCount = result[0].playerCount;
+            finalMessage.clanCount = result[0].clanCount;
+
+            // Check disk space usage
+            exec('df -h /', (error, stdout, stderr) => {
+                if (error || stderr) {
+                    finalMessage.diskSpace = 'Error fetching disk space';
+                } else {
+                    const diskSpace = stdout.split('\n')[1].split(/\s+/); // Parsing the output
+                    finalMessage.diskSpace = {
+                        total: diskSpace[1],
+                        used: diskSpace[2],
+                        available: diskSpace[3],
+                        usagePercentage: diskSpace[4]
+                    };
+                }
+            });
+
+            // Check memory usage
+            const totalMemory = os.totalmem();
+            const freeMemory = os.freemem();
+            const usedMemory = totalMemory - freeMemory;
+            const memoryUsage = ((usedMemory / totalMemory) * 100).toFixed(2);
+
+            finalMessage.memory = {
+                total: (totalMemory / (1024 * 1024 * 1024)).toFixed(2) + ' GB',
+                used: (usedMemory / (1024 * 1024 * 1024)).toFixed(2) + ' GB',
+                free: (freeMemory / (1024 * 1024 * 1024)).toFixed(2) + ' GB',
+                usagePercentage: memoryUsage + '%'
+            };
+
+            finalMessage.message = 'API is running';
+            return res.status(200).json({ success: true, message: 'API is running', ...finalMessage });
+        } catch (error) {
+            finalMessage = { success: false, message: 'API is running but returning results with error ' + error };
+            return res.status(200).json(finalMessage);
+        }
+    }
+
 
     static async getClansByLeague(req, res) {
         try {
@@ -91,6 +158,104 @@ class ClashController {
         }
     }
 
+    static async getClanOfALeague(req, res) {
+        try{
+            const { league } = req.params;
+            if (!league) {
+                return res.status(200).json({ success: false, message: 'League is required' });
+            }
+
+            const acceptableLeagues = ['1945', '1945_FD', 'GFL', 'BZLM', 'None', 'BL_FWL', 'BL_CROSS', 'BL_GFL', 'FWA', 'BL_FWA', 'FORMER']
+            if (!acceptableLeagues.includes(league)) {
+                return res.status(200).json({ success: false, message: 'Invalid league' });
+            }
+
+            let sqlQuery = `SELECT 
+                                l.clan_id,
+                                JSON_EXTRACT(c.clanJSON, '$.name') AS clan_name,
+                                JSON_EXTRACT(c.clanJSON, '$.tag') AS clan_tag,
+                                JSON_EXTRACT(c.clanJSON, '$.members') AS member_count,
+                                JSON_EXTRACT(c.clanJSON, '$.isWarLogPublic') AS isWarLogPublic,
+                                w.trackedState,
+                                w.oppoentClanName,
+                                w.opponentClanTag
+                            FROM 
+                                leagueinfo l
+                            JOIN 
+                                currentclanobject c ON l.clan_id = c.clanid
+                            LEFT JOIN 
+                                warlogrecords w ON l.clan_id = w.clan_id
+                            WHERE 
+                                (l.majorLeagueInfo = ? OR l.minorLeagueInfo = ?)
+                            ORDER BY 
+                                w.added_on DESC
+                            LIMIT 1;`;
+            let result = await db.execute(sqlQuery, [league, league]);
+            if (result.length === 0) {
+                return res.status(200).json({ success: false, message: 'No clan found in the league' });
+            }
+            return res.status(200).json({ success: true, data: result[0] });
+        }catch(error){
+            logger.error('Failed to get clan of a league:', error);
+            return res.status(200).json({ success: false, message: 'Failed to get clan of a league' });
+        }
+    }
+
+    static async getTrackedWar(req, res) {
+        try{
+            const { tag } = req.params;
+            if (!tag) {
+                return res.status(200).json({ success: false, message: 'Clan Tag is required' });
+            }
+
+            const checkTag = tag.startsWith('#') ? tag : `#${tag}`;
+            const isValid = await clashService.isClanTagValid(checkTag);
+
+            if (!isValid) {
+                return res.status(200).json({ success: false, message: 'Invalid clan tag' });
+            }
+
+            let decodedTag = decodeURIComponent(tag).startsWith('#') ? tag.substring(1) : tag;
+            decodedTag = decodedTag.toUpperCase();
+
+            let sqlQuery = `SELECT 
+                c.id AS clan_id,
+                c.clanTag,
+                w.id AS warlog_id,
+                w.startTime,
+                w.endTime,
+                w.opponentClanTag,
+                w.oppoentClanName,
+                w.opponentLeagueDuringWar,
+                w.clanStars,
+                w.opponentStars,
+                w.trackedState,
+                w.added_on,
+                w.warLogJSON
+            FROM 
+                clan c
+            LEFT JOIN 
+                warlogrecords w ON c.id = w.clan_id
+            WHERE 
+                c.clanTag = ?
+                AND w.id = (
+                    SELECT MAX(w2.id)
+                    FROM warlogrecords w2
+                    WHERE w2.clan_id = c.id);`
+            let bindParams = [decodedTag];
+            let result = await db.execute(sqlQuery, bindParams);
+            if (result.length === 0) {
+                return res.status(200).json({ success: false, message: 'No tracked war found' });
+            }
+            return res.status(200).json({ success: true, data: result[0] });
+
+        }catch(error){
+            logger.error('Failed to get tracked war:', error);
+            return res.status(200).json({ success: false, message: 'Failed to get tracked war' });
+        }
+
+    }
+
     static async getTrackedClanWars(req, res) {
         try {
             const { tag } = req.params;
@@ -131,13 +296,10 @@ class ClashController {
             CASE 
                 WHEN wl.trackedState = 'warEnded' THEN 
                     CASE 
-                        -- Compare stars first
                         WHEN JSON_EXTRACT(wl.warLogJSON, '$.clan.stars') > JSON_EXTRACT(wl.warLogJSON, '$.opponent.stars') THEN 'Clan Wins'
                         WHEN JSON_EXTRACT(wl.warLogJSON, '$.clan.stars') < JSON_EXTRACT(wl.warLogJSON, '$.opponent.stars') THEN 'Opponent Wins'
-                        -- If stars are equal, compare destruction percentage
                         WHEN JSON_EXTRACT(wl.warLogJSON, '$.clan.destructionPercentage') > JSON_EXTRACT(wl.warLogJSON, '$.opponent.destructionPercentage') THEN 'Clan Wins'
                         WHEN JSON_EXTRACT(wl.warLogJSON, '$.clan.destructionPercentage') < JSON_EXTRACT(wl.warLogJSON, '$.opponent.destructionPercentage') THEN 'Opponent Wins'
-                        -- If destruction percentage is also equal, compare attacks
                         WHEN JSON_EXTRACT(wl.warLogJSON, '$.clan.attacks') < JSON_EXTRACT(wl.warLogJSON, '$.opponent.attacks') THEN 'Clan Wins'
                         WHEN JSON_EXTRACT(wl.warLogJSON, '$.clan.attacks') > JSON_EXTRACT(wl.warLogJSON, '$.opponent.attacks') THEN 'Opponent Wins'
                         ELSE 'Draw'
