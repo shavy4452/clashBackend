@@ -1205,29 +1205,6 @@
           }
         }
       },
-      "/getClanOfALeague/{league}": {
-        "post": {
-          "tags": ["Clan Endpoints"],
-          "summary": "Get clans of a league",
-          "parameters": [
-            {
-              "name": "league",
-              "in": "path",
-              "required": true,
-              "description": "The league of the clan",
-              "schema": {
-                "type": "string"
-              }
-            }
-          ],
-          "security": [{ "ApiKeyAuth": [] }],
-          "responses": {
-            "200": {
-              "description": "Clans of a league retrieved successfully"
-            }
-          }
-        }
-      },
       "/getTrackedWar/{tag}":{
         "get":{
           "tags": ["War Endpoints"],

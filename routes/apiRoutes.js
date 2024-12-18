@@ -174,7 +174,7 @@ class ApiRoutes {
       , authenticate
       , rateLimitMiddleware
       //,  this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
-      , ClashController.getClansByLeague);
+      , ClashController.getClanOfALeague);
 
     this.router.post('/register',
       authenticate,
@@ -211,12 +211,6 @@ class ApiRoutes {
       , rateLimitMiddleware
       //,  this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
       , ClashController.getTrackedWar);
-
-    this.router.get('/getClanOfALeague/:league'
-      , authenticate
-      , rateLimitMiddleware
-      //,  this.isProduction ? cachemiddleware(60) : cachemiddleware(0),
-      , ClashController.getClanOfALeague);
 
   }
 
