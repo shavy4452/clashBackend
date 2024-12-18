@@ -66,10 +66,8 @@ class Server {
       await this.initClashClient();
       this.server = this.app.listen(this.config.port, this.onServerStart.bind(this));
       this.handleShutdown();
-      if(this.config.env === 'prod'){
-        this.validateConfig();
-        await this.runAutomationTasks();
-      }
+      this.validateConfig();
+      await this.runAutomationTasks();
     } catch (error) {
       logger.error('Failed to start server', error);
       process.exit(1);

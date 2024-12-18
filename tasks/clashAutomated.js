@@ -666,33 +666,26 @@ class ClashAutomated {
                 `;
                 await this.mysqlService.execute(updateQuery, [warJSON, newWar.clan.stars, newWar.opponent.stars, newWar.state, newWar.clan.tag.replace('#', ''), ""+newWar.endTime+""]);
                 if(newWar.clan.members.length > 0){
-                    for (members in newWar.clan.members) {
+                    for (const ClanWarMember in newWar.clan.members) {
+                        const member = newWar.clan.members[ClanWarMember];
                         var auditMessage = '';
-                        if (members.attacks.length > 0) {
-                            for (attack in members.attacks) {
+                        if (member.attacks.length > 0) {
+                            for (const ClanWarAttack in member.attacks) {
+                                let getWarID = `SELECT id FROM warlogrecords WHERE startTime = ? AND endTime = ? AND opponentClanTag = ? AND clan_id = (SELECT id FROM clan WHERE clanTag = ?)`;
+                                var warID = await this.mysqlService.execute(getWarID, [newWar.startTime, newWar.endTime, newWar.opponent.tag.replace('#', ''), newWar.clan.tag.replace('#', '')]);
+                                const attack = member.attacks[ClanWarAttack];
                                 if (attack.length > 0) {
-                                    const playerTag = members.tag.replace('#', '');
+                                    const playerTag = member.tag.replace('#', '');
                                     const opponentTag = attack.defenderTag.replace('#', '');
                                     const stars = attack.stars;
                                     const destructionPercentage = attack.destructionPercentage;
                                     const mapPosition = attack.mapPosition;
                                     auditMessage = `Player ${playerTag} attacked ${opponentTag} and got ${stars} stars with ${destructionPercentage}% destruction in war against ${opponentTag} at map position ${mapPosition}`;
-                                    console.log(auditMessage);
-                                    this.auditLogger.addPlayerAuditLog(playerTag, auditMessage, 'playerAttacked', members);
-                                }
-                            }
-                        }
-                        if (members.bestOpponentAttack.length > 0) {
-                            for (bestOpponentAttack in members.bestOpponentAttack) {
-                                if (bestOpponentAttack.length > 0) {
-                                    const playerTag = members.tag.replace('#', '');
-                                    const opponentTag = bestOpponentAttack.attackerTag.replace('#', '');
-                                    const stars = bestOpponentAttack.stars;
-                                    const destructionPercentage = bestOpponentAttack.destructionPercentage;
-                                    const mapPosition = bestOpponentAttack.mapPosition;
-                                    auditMessage = `Player ${playerTag} was attacked by ${opponentTag} and got ${stars} stars with ${destructionPercentage}% destruction in war against ${opponentTag} at map position ${mapPosition}`;
-                                    console.log(auditMessage);
-                                    this.auditLogger.addPlayerAuditLog(playerTag, auditMessage, 's', members);
+                                    this.auditLogger.addPlayerAuditLog(playerTag, auditMessage, 'playerAttacked', member);
+                                }else{
+                                    const playerTag = member.tag.replace('#', '');
+                                    auditMessage = `${member.name} ${playerTag} did not attack in war of ${newWar.clan.name} (${newWar.clan.tag}) against ${newWar.opponent.name} (${newWar.opponent.tag}) at map position ${member.mapPosition} in war ID ${warID[0].id}`;
+                                    this.auditLogger.addPlayerAuditLog(playerTag, auditMessage, 'playerAttacked', member);
                                 }
                             }
                         }

@@ -165,6 +165,23 @@ class ClashService {
         }
     }
 
+    async makeTHCompoMessage(clanTag){
+        try{
+            let thLevels = await this.getTHLevels(clanTag);
+            let message = `Clan: ${thLevels.name} (${thLevels.tag})\n\n`;
+            message += `Total Members: ${thLevels.total}\n\n`;
+            message += `Town Hall Levels:\n`;
+            for (const townHall of thLevels.townHalls) {
+                message += `TH${townHall.level}: ${townHall.total}\n`;
+            }
+            message += `\nAverage TH Level: ${thLevels.average.toFixed(2)}\n\n`;
+            message += `Estimated War Weight: ${thLevels.estWeight}\n\n`;
+            return message;
+        }catch(error){
+            return '';
+        }
+    }
+
     
     async isClanTagValid(clantag){
         try{
