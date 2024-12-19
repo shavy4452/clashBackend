@@ -864,6 +864,14 @@ class ClashController {
                         clanJSONResult[0].clanJSON.memberCount = clanJSONResult[0].clanJSON.members.length; 
                         delete clanJSONResult[0].clanJSON.memberList;
                         delete clanJSONResult[0].clanJSON.badgeUrls;
+                        for (let i = 0; i < clanJSONResult[0].clanJSON.members.length; i++) {
+                            if(clanJSONResult[0].clanJSON.members[i].league && clanJSONResult[0].clanJSON.members[i].league.iconUrls){
+                                var icon = {}
+                                icon.url = clanJSONResult[0].clanJSON.members[i].league.iconUrls.medium || clanJSONResult[0].clanJSON.members[i].league.iconUrls.small || clanJSONResult[0].clanJSON.members[i].league.iconUrls.tiny || '';
+                                clanJSONResult[0].clanJSON.members[i].league.icon = icon;
+                                delete clanJSONResult[0].clanJSON.members[i].league.iconUrls;
+                            }
+                        }
                         return res.status(200).json({ success: true, data: clanJSONResult[0].clanJSON });
                     }
                 }
