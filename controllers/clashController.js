@@ -1026,7 +1026,7 @@ class ClashController {
                 if (playerResult.length > 0) {
                     const playerInfo = await db.execute('SELECT playerJSON FROM currentplayerobject WHERE playerid = ?', [playerResult[0].id]);
                     if (playerInfo.length > 0) {
-                        return res.status(200).json({ success: true, data: playerInfo[0].clanJSON });
+                        return res.status(200).json({ success: true, data: playerInfo[0].playerJSON });
                     }
                 }
                 return res.status(200).json({ success: false, message: 'API is currently in maintenance, please come back later' });

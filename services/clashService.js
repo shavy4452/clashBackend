@@ -1,6 +1,7 @@
 const { Client, BatchThrottler, QueueThrottler, Util, PollingClient } = require('clashofclans.js');
 const logger = require('../utils/logger.js');
 const chalk = require('chalk');
+const db = require('../services/mysqldbService.js');
 
 class ClashService {
     constructor() {
@@ -19,6 +20,8 @@ class ClashService {
             restRequestTimeout: 5000,
             throttler: new QueueThrottler(30),
         });
+
+        this.db = db;
 
         this.util = Util;
     }
@@ -123,10 +126,25 @@ class ClashService {
     
     async getTHLevels(clantag){
         try{
+            var clan = "";
             if (clantag.includes('%23')) {
                 clantag = clantag.replace('%23', '');
             }
-            var clan = await this.client1.getClan(clantag);
+            try{
+                clan = await this.client1.getClan(clantag);
+            }catch(error){
+                if (error.message != 'Requested resource was not found.') {
+                    console.error(chalk.red('[ERROR] Error fetching clan TH levels:', error));
+                }
+                if(error.status === 503 && error.reason === 'inMaintenance'){
+                    var sqlQuery = `SELECT clanJSON FROM currentclanobject WHERE clanid = (SELECT id FROM clan WHERE clanTag = '${clantag}')`;
+                    var clanJSON = await this.db.execute(sqlQuery);
+                    if(clanJSON.length > 0){
+                        clan = clanJSON[0].clanJSON;
+                    }
+                }
+            }
+            
             let THCounts = {
                 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 
                 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 
