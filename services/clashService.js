@@ -140,8 +140,11 @@ class ClashService {
                     var sqlQuery = `SELECT clanJSON FROM currentclanobject WHERE clanid = (SELECT id FROM clan WHERE clanTag = '${clantag}')`;
                     var clanJSON = await this.db.execute(sqlQuery);
                     if(clanJSON.length > 0){
+                        console.log(clanJSON[0].clanJSON);
                         clan = clanJSON[0].clanJSON;
                         clan.members = Object.values(clan.memberList);
+                    }else{
+                        throw error;
                     }
                 }
             }
