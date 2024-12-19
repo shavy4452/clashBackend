@@ -857,6 +857,13 @@ class ClashController {
                             internalNote: ''
                         };
                         clanJSONResult[0].clanJSON.associationInfo = leagueInfo;
+                        var badge = {}
+                        badge.url = clanJSONResult[0].clanJSON.badgeUrls.large || clanJSONResult[0].clanJSON.badgeUrls.medium || clanJSONResult[0].clanJSON.badgeUrls.small || '';
+                        clanJSONResult[0].clanJSON.badge = badge;
+                        clanJSONResult[0].clanJSON.members = clanJSONResult[0].clanJSON.memberList;
+                        clanJSONResult[0].clanJSON.memberCount = clanJSONResult[0].clanJSON.members.length; 
+                        delete clanJSONResult[0].clanJSON.memberList;
+                        delete clanJSONResult[0].clanJSON.badgeUrls;
                         return res.status(200).json({ success: true, data: clanJSONResult[0].clanJSON });
                     }
                 }
