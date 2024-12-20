@@ -3,6 +3,7 @@ const logger = require('../utils/logger');
 const mysqlService = require('../services/mysqldbService');
 const AuditLogger = require('../utils/AuditLogger.js');
 const fs = require('fs');
+const BandService = require('../services/bandService');
 
 class ClashAutomated {
     constructor() {
@@ -12,6 +13,7 @@ class ClashAutomated {
         this.auditLogger = new AuditLogger(mysqlService);
         this.syncedClans = new Set();
         this.pollInterval = 5 * 60 * 1000;
+        this.bandService = new BandService();
     }
 
     async syncClashData() {
@@ -418,9 +420,13 @@ class ClashAutomated {
             this.logPlayerEvent('playerNameChange', oldPlayer, newPlayer, `Name changed from ${oldPlayer.name} to ${newPlayer.name}`)
         );
         this.client.on('playerRoleChange', (oldPlayer, newPlayer) => {
-            const message = newPlayer.role === null
-                ? `Player left the clan. Previous role was ${oldPlayer.role}`
-                : `Role changed from ${oldPlayer.role} to ${newPlayer.role}`;
+            var message = ""
+            if(oldPlayer.role === newPlayer.role) return;
+            if(oldPlayer.role === null && newPlayer.role !== null){
+                message = `Player joined a clan ${newPlayer.clan.name} (${newPlayer.clan.tag}) and got role ${newPlayer.role}.`;
+            }else if(oldPlayer.role !== null && newPlayer.role === null){
+                message = `Player left a clan ${oldPlayer.clan.name} (${oldPlayer.clan.tag}).`;
+            }
             this.logPlayerEvent('playerRoleChange', oldPlayer, newPlayer, message);
         });
 

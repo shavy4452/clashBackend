@@ -207,6 +207,7 @@ class ClashService {
     
     async isClanTagValid(clantag){
         try{
+            clantag = clantag.toUpperCase();
             let isTagValid = await this.client1.util.isValidTag(clantag);
             if (!isTagValid) {
                 return false;
@@ -219,6 +220,7 @@ class ClashService {
 
     async isPlayerTagValid(playertag){
         try{
+            playertag = playertag.toUpperCase();
             let isTagValid = await this.client1.util.isValidTag(playertag);
             if (!isTagValid) {
                 return false;
