@@ -3,7 +3,6 @@ const logger = require('../utils/logger');
 const mysqlService = require('../services/mysqldbService');
 const AuditLogger = require('../utils/AuditLogger.js');
 const fs = require('fs');
-const BandService = require('../services/bandService');
 
 class ClashAutomated {
     constructor() {
@@ -13,7 +12,6 @@ class ClashAutomated {
         this.auditLogger = new AuditLogger(mysqlService);
         this.syncedClans = new Set();
         this.pollInterval = 5 * 60 * 1000;
-        this.bandService = new BandService();
     }
 
     async syncClashData() {
